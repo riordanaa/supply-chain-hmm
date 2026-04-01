@@ -26,7 +26,7 @@ Our approach is inspired by Mohaddesi et al. (2022), who used PCA and HMMs to ch
 
 We model a simplified three-echelon pharmaceutical supply chain:
 
-$$\text{Manufacturer (MN)} \xrightarrow{\ell = 2} \text{Distributor (DR)} \xrightarrow{\ell = 2} \text{Health Center (HC)}$$
+$$\text{Manufacturer (MN)} \xrightarrow{\text{ lead: 2 }} \text{Distributor (DR)} \xrightarrow{\text{ lead: 2 }} \text{Health Center (HC)}$$
 
 where $\ell$ denotes the shipping lead time in weeks. The MN produces pharmaceuticals with a production lead time of 2 weeks and a maximum capacity of 800 units/week. HC generates stochastic demand $D_t \sim \mathcal{N}(200, 10^2)$ each week.
 
@@ -77,7 +77,7 @@ $$a_{ij} = P(S_{t+1} = j \mid S_t = i)$$
 **Emission matrix** $B$ ($3 \times 6$):
 $$b_i(o) = P(O_t = o \mid S_t = i)$$
 
-subject to the constraints $\sum_i \pi_i = 1$, $\sum_j a_{ij} = 1$ for all $i$, and $\sum_o b_i(o) = 1$ for all $i$.
+subject to the constraints: $\sum \pi_i = 1$, $\sum_j a_{ij} = 1$ for all $i$, and $\sum_o b_i(o) = 1$ for all $i$.
 
 ### 2.5 Geometric Disruption Duration
 
@@ -182,13 +182,13 @@ This combines the statistical rigor of supervised training with the computationa
 Given $K$ training sequences $\{(s^{(k)}_1, \ldots, s^{(k)}_{T_k})\}$ with corresponding observations $\{(o^{(k)}_1, \ldots, o^{(k)}_{T_k})\}$:
 
 **Initial state distribution:**
-$$\hat{\pi}_i = \frac{C_\pi(i) + \alpha}{\sum_{j=0}^{N-1} [C_\pi(j) + \alpha]}, \quad \text{where } C_\pi(i) = \sum_{k=1}^{K} \mathbb{1}[s^{(k)}_1 = i]$$
+$$\hat{\pi}_i = \frac{C_\pi(i) + \alpha}{\sum_{j=0}^{N-1} [C_\pi(j) + \alpha]}, \quad \text{where } C_\pi(i) = \sum_{k=1}^{K} I(s^{(k)}_1 = i)$$
 
 **Transition matrix:**
-$$\hat{a}_{ij} = \frac{C_A(i, j) + \alpha}{\sum_{j'=0}^{N-1} [C_A(i, j') + \alpha]}, \quad \text{where } C_A(i, j) = \sum_{k=1}^{K} \sum_{t=1}^{T_k - 1} \mathbb{1}[s^{(k)}_t = i, \, s^{(k)}_{t+1} = j]$$
+$$\hat{a}_{ij} = \frac{C_A(i, j) + \alpha}{\sum_{j'=0}^{N-1} [C_A(i, j') + \alpha]}, \quad \text{where } C_A(i, j) = \sum_{k=1}^{K} \sum_{t=1}^{T_k - 1} I(s^{(k)}_t = i, \, s^{(k)}_{t+1} = j)$$
 
 **Emission matrix:**
-$$\hat{b}_i(o) = \frac{C_B(i, o) + \alpha}{\sum_{o'=0}^{M-1} [C_B(i, o') + \alpha]}, \quad \text{where } C_B(i, o) = \sum_{k=1}^{K} \sum_{t=1}^{T_k} \mathbb{1}[s^{(k)}_t = i, \, o^{(k)}_t = o]$$
+$$\hat{b}_i(o) = \frac{C_B(i, o) + \alpha}{\sum_{o'=0}^{M-1} [C_B(i, o') + \alpha]}, \quad \text{where } C_B(i, o) = \sum_{k=1}^{K} \sum_{t=1}^{T_k} I(s^{(k)}_t = i, \, o^{(k)}_t = o)$$
 
 Here $\alpha = 1$ is the Laplace smoothing constant, which prevents zero probabilities (and thus $\log(0)$ errors in Forward/Viterbi) for rare state-observation combinations.
 
@@ -319,7 +319,7 @@ As demonstrated in Section 3, the natural supply chain violates the strict memor
 We have demonstrated that a Hidden Markov Model can provide a downstream Distributor with probabilistic situational awareness of an upstream Manufacturer's hidden operational state. Using a validated pharmaceutical supply chain simulator, we:
 
 1. **Verified** that the natural supply chain violates the memoryless property, and showed that Geometric disruption encoding enforces it.
-2. **Trained** an HMM via supervised MLE, achieving parameters that closely match the known system dynamics (e.g., $\hat{a}_{11} = 0.921 \approx 1 - p$).
+2. **Trained** an HMM via supervised MLE, achieving parameters that closely match the known system dynamics (e.g., the disruption self-transition probability is $0.921 \approx 1 - p$).
 3. **Quantified** the fundamental detection lag (10.2 weeks for disruption, 4.0 weeks for recovery) imposed by physical lead-time propagation.
 4. **Achieved** 80.0% overall Viterbi classification accuracy, with the primary limitation being the physical unobservability of very short disruptions.
 
