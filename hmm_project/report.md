@@ -68,16 +68,19 @@ The combined observation index is $o_t = 3b + r$, yielding:
 
 The HMM is defined by the parameter set $\lambda = (\pi, A, B)$:
 
-**Initial state distribution** $\pi$:
-$$\pi_i = P(S_1 = i), \quad i \in \{0, 1, 2\}$$
+**Initial state distribution** (pi):
 
-**Transition matrix** $A$ ($3 \times 3$):
-$$a_{ij} = P(S_{t+1} = j \mid S_t = i)$$
+$$\pi\_i = P(S\_1 = i), \quad i \in \{0, 1, 2\}$$
 
-**Emission matrix** $B$ ($3 \times 6$):
-$$b_i(o) = P(O_t = o \mid S_t = i)$$
+**Transition matrix** A (3 x 3):
 
-subject to the constraints: $\sum \pi_i = 1$, $\sum_j a_{ij} = 1$ for all $i$, and $\sum_o b_i(o) = 1$ for all $i$.
+$$a\_{ij} = P(S\_{t+1} = j \mid S\_t = i)$$
+
+**Emission matrix** B (3 x 6):
+
+$$b\_i(o) = P(O\_t = o \mid S\_t = i)$$
+
+subject to the constraints: sum of pi = 1, sum of each row of A = 1, and sum of each row of B = 1.
 
 ### 2.5 Geometric Disruption Duration
 
@@ -92,7 +95,7 @@ This choice is deliberate: the Geometric distribution is the only discrete memor
 ### 3.1 Why the Markov Property Matters
 
 The HMM framework assumes that the hidden state sequence $\{S_t\}$ is a first-order Markov chain:
-$$P(S_{t+1} \mid S_t, S_{t-1}, \ldots, S_1) = P(S_{t+1} \mid S_t)$$
+$$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$
 
 This requires that the time spent in any state has no memory — i.e., the dwell time distribution is Geometric. If this assumption is violated, the HMM's transition probabilities cannot fully capture the dynamics, potentially degrading inference quality.
 
@@ -179,18 +182,21 @@ This combines the statistical rigor of supervised training with the computationa
 
 ### 5.3 MLE Derivation
 
-Given $K$ training sequences $\{(s^{(k)}_1, \ldots, s^{(k)}_{T_k})\}$ with corresponding observations $\{(o^{(k)}_1, \ldots, o^{(k)}_{T_k})\}$:
+Given *K* training sequences with state labels and corresponding observations:
 
 **Initial state distribution:**
-$$\hat{\pi}_i = \frac{C_\pi(i) + \alpha}{\sum_{j=0}^{N-1} [C_\pi(j) + \alpha]}, \quad \text{where } C_\pi(i) = \sum_{k=1}^{K} I(s^{(k)}_1 = i)$$
+
+$$\hat{\pi}\_{i} = \frac{C\_{\pi}(i) + \alpha}{\sum\_{j=0}^{N-1} [C\_{\pi}(j) + \alpha]}, \quad \text{where } C\_{\pi}(i) = \sum\_{k=1}^{K} I(s\_{1}^{(k)} = i)$$
 
 **Transition matrix:**
-$$\hat{a}_{ij} = \frac{C_A(i, j) + \alpha}{\sum_{j'=0}^{N-1} [C_A(i, j') + \alpha]}, \quad \text{where } C_A(i, j) = \sum_{k=1}^{K} \sum_{t=1}^{T_k - 1} I(s^{(k)}_t = i, \, s^{(k)}_{t+1} = j)$$
+
+$$\hat{a}\_{ij} = \frac{C\_{A}(i, j) + \alpha}{\sum\_{j'=0}^{N-1} [C\_{A}(i, j') + \alpha]}, \quad \text{where } C\_{A}(i, j) = \sum\_{k=1}^{K} \sum\_{t=1}^{T\_{k} - 1} I(s\_{t}^{(k)} = i,\ s\_{t+1}^{(k)} = j)$$
 
 **Emission matrix:**
-$$\hat{b}_i(o) = \frac{C_B(i, o) + \alpha}{\sum_{o'=0}^{M-1} [C_B(i, o') + \alpha]}, \quad \text{where } C_B(i, o) = \sum_{k=1}^{K} \sum_{t=1}^{T_k} I(s^{(k)}_t = i, \, o^{(k)}_t = o)$$
 
-Here $\alpha = 1$ is the Laplace smoothing constant, which prevents zero probabilities (and thus $\log(0)$ errors in Forward/Viterbi) for rare state-observation combinations.
+$$\hat{b}\_{i}(o) = \frac{C\_{B}(i, o) + \alpha}{\sum\_{o'=0}^{M-1} [C\_{B}(i, o') + \alpha]}, \quad \text{where } C\_{B}(i, o) = \sum\_{k=1}^{K} \sum\_{t=1}^{T\_{k}} I(s\_{t}^{(k)} = i,\ o\_{t}^{(k)} = o)$$
+
+Here alpha = 1 is the Laplace smoothing constant, which prevents zero probabilities (and thus log(0) errors in Forward/Viterbi) for rare state-observation combinations.
 
 ### 5.4 Trained Parameters
 
@@ -211,44 +217,55 @@ Here $\alpha = 1$ is the Laplace smoothing constant, which prevents zero probabi
 
 The Forward algorithm computes the **filtered** state probabilities — the probability of being in each state at time $t$ given only the observations up to time $t$:
 
-$$P(S_t = i \mid o_1, o_2, \ldots, o_t)$$
+$$P(S\_t = i \mid o\_1, o\_2, \ldots, o\_t)$$
 
-This is the key quantity for real-time disruption detection: when $P(S_t = \text{Disruption} \mid o_{1:t}) > 0.5$, the DR should raise an alert.
+This is the key quantity for real-time disruption detection: when P(Disruption) > 0.5, the DR should raise an alert.
 
-**Definition.** The forward variable $\alpha_t(i)$ is:
-$$\alpha_t(i) = P(o_1, o_2, \ldots, o_t, S_t = i \mid \lambda)$$
+**Definition.** The forward variable is:
 
-**Initialization** ($t = 1$):
-$$\alpha_1(i) = \pi_i \cdot b_i(o_1)$$
+$$\alpha\_t(i) = P(o\_1, o\_2, \ldots, o\_t,\ S\_t = i \mid \lambda)$$
 
-**Recursion** ($t = 2, \ldots, T$):
-$$\alpha_t(j) = \left[\sum_{i=0}^{N-1} \alpha_{t-1}(i) \cdot a_{ij}\right] \cdot b_j(o_t)$$
+**Initialization** (t = 1):
 
-**Scaling.** Raw $\alpha_t(i)$ values decay exponentially and underflow to zero for long sequences. We apply the standard scaling technique: at each time step, normalize $\alpha_t$ by the scaling factor $c_t = \sum_j \alpha_t(j)$, yielding the **filtered probabilities** directly:
+$$\alpha\_1(i) = \pi\_i \cdot b\_i(o\_1)$$
 
-$$\hat{\alpha}_t(i) = \frac{\alpha_t(i)}{c_t} = P(S_t = i \mid o_1, \ldots, o_t)$$
+**Recursion** (t = 2, ..., T):
+
+$$\alpha\_t(j) = \left[\sum\_{i=0}^{N-1} \alpha\_{t-1}(i) \cdot a\_{ij}\right] \cdot b\_j(o\_t)$$
+
+**Scaling.** Raw alpha values decay exponentially and underflow to zero for long sequences. We apply the standard scaling technique: at each time step, normalize by the scaling factor, yielding the **filtered probabilities** directly:
+
+$$\hat{\alpha}\_t(i) = \frac{\alpha\_t(i)}{c\_t} = P(S\_t = i \mid o\_1, \ldots, o\_t)$$
 
 ### 6.2 The Viterbi Algorithm (Historical Classification)
 
 The Viterbi algorithm finds the single most likely **complete** state sequence:
 
-$$S^* = \arg\max_{S_1, \ldots, S_T} P(S_1, \ldots, S_T \mid o_1, \ldots, o_T, \lambda)$$
+$$S^{\*} = \arg\max\_{S\_1, \ldots, S\_T} P(S\_1, \ldots, S\_T \mid o\_1, \ldots, o\_T, \lambda)$$
 
-**Definition.** The Viterbi variable $\delta_t(i)$ is the log-probability of the most probable path ending in state $i$ at time $t$:
-$$\delta_t(i) = \max_{S_1, \ldots, S_{t-1}} \log P(S_1, \ldots, S_{t-1}, S_t = i, o_1, \ldots, o_t \mid \lambda)$$
+**Definition.** The Viterbi variable is the log-probability of the most probable path ending in state *i* at time *t*:
 
-with backpointer $\psi_t(i) = \arg\max_j [\delta_{t-1}(j) + \log a_{ji}]$.
+$$\delta\_t(i) = \max\_{S\_1, \ldots, S\_{t-1}} \log P(S\_1, \ldots, S\_{t-1},\ S\_t = i,\ o\_1, \ldots, o\_t \mid \lambda)$$
 
-**Initialization** ($t = 1$):
-$$\delta_1(i) = \log \pi_i + \log b_i(o_1)$$
+with backpointer:
 
-**Recursion** ($t = 2, \ldots, T$):
-$$\delta_t(j) = \max_{i} \left[\delta_{t-1}(i) + \log a_{ij}\right] + \log b_j(o_t)$$
-$$\psi_t(j) = \arg\max_{i} \left[\delta_{t-1}(i) + \log a_{ij}\right]$$
+$$\psi\_t(i) = \arg\max\_j [\delta\_{t-1}(j) + \log a\_{ji}]$$
+
+**Initialization** (t = 1):
+
+$$\delta\_1(i) = \log \pi\_i + \log b\_i(o\_1)$$
+
+**Recursion** (t = 2, ..., T):
+
+$$\delta\_t(j) = \max\_{i} \left[\delta\_{t-1}(i) + \log a\_{ij}\right] + \log b\_j(o\_t)$$
+
+$$\psi\_t(j) = \arg\max\_{i} \left[\delta\_{t-1}(i) + \log a\_{ij}\right]$$
 
 **Termination and backtracking:**
-$$S^*_T = \arg\max_i \delta_T(i)$$
-$$S^*_t = \psi_{t+1}(S^*_{t+1}), \quad t = T-1, \ldots, 1$$
+
+$$S^{\*}\_{T} = \arg\max\_{i}\ \delta\_{T}(i)$$
+
+$$S^{\*}\_{t} = \psi\_{t+1}(S^{\*}\_{t+1}), \quad t = T-1, \ldots, 1$$
 
 Working in log-space eliminates underflow issues entirely.
 
