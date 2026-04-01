@@ -1,0 +1,302 @@
+[
+  {
+    "run_id": 70,
+    "onset": 15,
+    "recovery_time": 18,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 112,
+    "seed_disruption": 10112,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 71,
+    "onset": 15,
+    "recovery_time": 26,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 113,
+    "seed_disruption": 10113,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 72,
+    "onset": 15,
+    "recovery_time": 16,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 114,
+    "seed_disruption": 10114,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 73,
+    "onset": 15,
+    "recovery_time": 29,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 115,
+    "seed_disruption": 10115,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 74,
+    "onset": 15,
+    "recovery_time": 23,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 116,
+    "seed_disruption": 10116,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 75,
+    "onset": 15,
+    "recovery_time": 28,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 117,
+    "seed_disruption": 10117,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 76,
+    "onset": 15,
+    "recovery_time": 26,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 118,
+    "seed_disruption": 10118,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 77,
+    "onset": 15,
+    "recovery_time": 39,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 119,
+    "seed_disruption": 10119,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 78,
+    "onset": 15,
+    "recovery_time": 31,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 120,
+    "seed_disruption": 10120,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 79,
+    "onset": 15,
+    "recovery_time": 19,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 121,
+    "seed_disruption": 10121,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 80,
+    "onset": 15,
+    "recovery_time": 41,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 122,
+    "seed_disruption": 10122,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 81,
+    "onset": 15,
+    "recovery_time": 28,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 123,
+    "seed_disruption": 10123,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 82,
+    "onset": 15,
+    "recovery_time": 30,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 124,
+    "seed_disruption": 10124,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 83,
+    "onset": 15,
+    "recovery_time": 21,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 125,
+    "seed_disruption": 10125,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 84,
+    "onset": 15,
+    "recovery_time": 17,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 126,
+    "seed_disruption": 10126,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 85,
+    "onset": 15,
+    "recovery_time": 18,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 127,
+    "seed_disruption": 10127,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 86,
+    "onset": 15,
+    "recovery_time": 19,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 128,
+    "seed_disruption": 10128,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 87,
+    "onset": 15,
+    "recovery_time": 35,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 129,
+    "seed_disruption": 10129,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 88,
+    "onset": 15,
+    "recovery_time": 20,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 130,
+    "seed_disruption": 10130,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 89,
+    "onset": 15,
+    "recovery_time": 30,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 131,
+    "seed_disruption": 10131,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 90,
+    "onset": 15,
+    "recovery_time": 39,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 132,
+    "seed_disruption": 10132,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 91,
+    "onset": 15,
+    "recovery_time": 48,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 133,
+    "seed_disruption": 10133,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 92,
+    "onset": 15,
+    "recovery_time": 17,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 134,
+    "seed_disruption": 10134,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 93,
+    "onset": 15,
+    "recovery_time": 29,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 135,
+    "seed_disruption": 10135,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 94,
+    "onset": 15,
+    "recovery_time": 23,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 136,
+    "seed_disruption": 10136,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 95,
+    "onset": 15,
+    "recovery_time": 28,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 137,
+    "seed_disruption": 10137,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 96,
+    "onset": 15,
+    "recovery_time": 22,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 138,
+    "seed_disruption": 10138,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 97,
+    "onset": 15,
+    "recovery_time": 38,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 139,
+    "seed_disruption": 10139,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 98,
+    "onset": 15,
+    "recovery_time": 26,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 140,
+    "seed_disruption": 10140,
+    "sim_periods": 80
+  },
+  {
+    "run_id": 99,
+    "onset": 15,
+    "recovery_time": 23,
+    "geom_p": 0.08,
+    "disruption_factor": 0.05,
+    "seed_numpy": 141,
+    "seed_disruption": 10141,
+    "sim_periods": 80
+  }
+]

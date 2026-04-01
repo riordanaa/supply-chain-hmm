@@ -1,0 +1,10 @@
+{
+  "run_id": 75,
+  "onset": 15,
+  "recovery_time": 28,
+  "geom_p": 0.08,
+  "disruption_factor": 0.05,
+  "seed_numpy": 117,
+  "seed_disruption": 10117,
+  "sim_periods": 80
+}
