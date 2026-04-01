@@ -214,7 +214,7 @@ The heatmap reveals clear signal separation: Steady State overwhelmingly emits o
 - The learned Disruption self-transition probability is 0.9209, which closely matches $1 - p = 0.92$, confirming that the trained HMM recovers the Geometric parameter $p = 0.08$. This validates both the training procedure and the Geometric encoding.
 - The Steady state emits observation 1 (None-BL, Normal-Ship) with probability 0.764, consistent with normal operations.
 - The Disruption state emits observation 3 (High-BL, Zero/Low-Ship) with probability 0.445, reflecting the reduced shipments and growing backlog.
-- The Recovery state emits observation 5 (High-BL, Surge-Ship) with probability 0.114, capturing the backlog-clearing surge after capacity restoration.
+- The Recovery state emits observation 5 (High-BL, Surge-Ship) with probability 0.514, capturing the backlog-clearing surge after capacity restoration.
 
 ---
 
