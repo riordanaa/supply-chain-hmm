@@ -198,7 +198,14 @@ $$\hat{b}\_{i}(o) = \frac{C\_{B}(i, o) + \alpha}{\sum\_{o'=0}^{M-1} [C\_{B}(i, o
 
 Here alpha = 1 is the Laplace smoothing constant, which prevents zero probabilities (and thus log(0) errors in Forward/Viterbi) for rare state-observation combinations.
 
-### 5.4 Trained Parameters
+### 5.4 Observation Signal-to-Noise Ratio
+
+![Observation Frequency Heatmap](results/observation_frequency_heatmap.png)
+*Figure 3a: Observation frequency per state from the test data. Each cell shows the percentage (and count) of periods in that state emitting that observation. The strong diagonal pattern confirms that each state produces a distinct emission signature.*
+
+The heatmap reveals clear signal separation: Steady State overwhelmingly emits observation 1 (None-BL, Normal-Ship, 64.6%), Disruption concentrates on observation 3 (High-BL, Zero/Low-Ship, 55.2%), and Recovery is dominated by observation 5 (High-BL, Surge-Ship, 34.8%) alongside observation 3 (42.7%). The overlap between Disruption and Recovery on observation 3 reflects the physical reality that both states involve high backlogs — the distinguishing signal is the shipment level (Zero/Low vs. Surge).
+
+### 5.5 Trained Parameters
 
 ![Trained Matrices](results/trained_matrices.png)
 *Figure 3: Trained HMM parameters. Left: Transition matrix $A$ showing high self-transition probabilities (0.978 for Steady, 0.921 for Disruption, 0.870 for Recovery). Right: Emission matrix $B$ showing clear state-observation separation.*

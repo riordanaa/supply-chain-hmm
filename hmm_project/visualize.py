@@ -15,7 +15,7 @@ from matplotlib.colors import ListedColormap
 
 from config import (
     STEADY, DISRUPTION, RECOVERY, STATE_NAMES,
-    N_OBS, OBS_NAMES, DISRUPTION_ONSET
+    N_OBS, OBS_NAMES, DISRUPTION_ONSET, PRODUCTION_MAX, RECOVERY_BACKLOG_THRESHOLD
 )
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
@@ -326,18 +326,98 @@ def plot_raw_signals(run_idx=0):
     print(f"  Saved: {path}")
 
 
+def plot_observation_frequency_heatmap(test_states, test_obs):
+    """
+    Heatmap of observation frequencies per state (raw counts from test data).
+    Visualizes the signal-to-noise ratio: how distinctly each state
+    maps to specific observations.
+    """
+    n_states = 3
+    n_obs = N_OBS
+
+    # Count observations per state
+    counts = np.zeros((n_states, n_obs), dtype=int)
+    for state_seq, obs_seq in zip(test_states, test_obs):
+        for s, o in zip(np.asarray(state_seq), np.asarray(obs_seq)):
+            counts[int(s), int(o)] += 1
+
+    # Row-normalize to get empirical emission frequencies
+    row_sums = counts.sum(axis=1, keepdims=True)
+    freq = np.where(row_sums > 0, counts / row_sums, 0)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    im = ax.imshow(freq, cmap='YlGnBu', vmin=0, vmax=freq.max(), aspect='auto')
+
+    for i in range(n_states):
+        for o in range(n_obs):
+            pct = 100 * freq[i, o]
+            cnt = counts[i, o]
+            text_color = 'white' if freq[i, o] > 0.4 else 'black'
+            ax.text(o, i, f"{pct:.1f}%\n({cnt})",
+                    ha='center', va='center', fontsize=10, color=text_color,
+                    fontweight='bold')
+
+    ax.set_xticks(range(n_obs))
+    ax.set_yticks(range(n_states))
+    short_labels = ["None-BL\nZero/Low-Ship", "None-BL\nNormal-Ship", "None-BL\nSurge-Ship",
+                    "High-BL\nZero/Low-Ship", "High-BL\nNormal-Ship", "High-BL\nSurge-Ship"]
+    ax.set_xticklabels(short_labels, fontsize=8)
+    ax.set_yticklabels(STATE_NAMES, fontsize=11)
+    ax.set_xlabel("Observation", fontsize=12)
+    ax.set_ylabel("True State", fontsize=12)
+    ax.set_title("Observation Frequency per State (Test Data)\n"
+                 "Signal-to-Noise: How distinctly each state maps to observations",
+                 fontsize=13, fontweight='bold')
+    plt.colorbar(im, ax=ax, label="Frequency (row-normalized)")
+
+    plt.tight_layout()
+    path = os.path.join(RESULTS_DIR, "observation_frequency_heatmap.png")
+    plt.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {path}")
+
+
+def find_best_example_run(test_metadata, min_duration=12):
+    """
+    Find a test run with disruption duration > min_duration weeks.
+    Returns the index of the best run for visualization.
+    """
+    best_idx = None
+    best_dur = 0
+    for i, meta in enumerate(test_metadata):
+        onset = meta["onset"]
+        recovery = meta.get("recovery_time")
+        if recovery is not None:
+            duration = recovery - onset
+            # Prefer runs with moderate duration (13-20 weeks) for clearest visuals
+            if duration > min_duration and (best_idx is None or
+                (13 <= duration <= 20 and best_dur not in range(13, 21)) or
+                (best_dur not in range(13, 21) and duration > best_dur)):
+                best_idx = i
+                best_dur = duration
+    # Fallback: any recovered run
+    if best_idx is None:
+        for i, meta in enumerate(test_metadata):
+            if meta.get("recovery_time") is not None:
+                best_idx = i
+                break
+    if best_idx is None:
+        best_idx = 0
+    return best_idx
+
+
 def generate_all_plots(results):
     """Generate all visualization plots."""
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
     print("\nGenerating plots...")
 
-    # Find a good example run (one that has all 3 states and recovered)
-    best_idx = 0
-    for i, meta in enumerate(results["test_metadata"]):
-        if meta.get("recovery_time") is not None:
-            best_idx = i
-            break
+    # Find a test run with disruption > 12 weeks for clear visual demonstration
+    best_idx = find_best_example_run(results["test_metadata"], min_duration=12)
+    best_meta = results["test_metadata"][best_idx]
+    best_dur = best_meta.get("recovery_time", 0) - best_meta["onset"]
+    print(f"  Selected test run {best_idx} (disruption duration: {best_dur} weeks) "
+          f"for hero figure and raw signals.")
 
     plot_hero_figure(
         results["test_states"], results["test_obs"],
@@ -359,6 +439,10 @@ def generate_all_plots(results):
     plot_trained_matrices(results["model"])
 
     plot_raw_signals(run_idx=best_idx)
+
+    plot_observation_frequency_heatmap(
+        results["test_states"], results["test_obs"]
+    )
 
     print(f"\nAll plots saved to: {RESULTS_DIR}")
 
