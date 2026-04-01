@@ -284,11 +284,11 @@ We derived these algorithms mathematically for completeness; for execution, we l
 *Figure 5: HMM disruption detection for a single test run. Top: ground-truth state sequence. Middle: Viterbi-decoded state sequence. Bottom: Forward-filtered probabilities P(State | observations) over time. Vertical lines mark the actual disruption onset and MN recovery.*
 
 ![Detection Lag Histogram](results/detection_lag_histogram.png)
-*Figure 6: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) > 0.5), mean = 10.2 weeks. Right: Recovery detection lag, mean = 4.0 weeks.*
+*Figure 6: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) > 0.5), mean = 10.2 weeks (20/30 runs). Right: Recovery detection lag, mean = 4.1 weeks (19/30 runs). Only post-disruption Recovery events are included; the startup transient before Week 15 is excluded.*
 
 **Disruption detection lag:** The Forward algorithm detects disruption (pushes $P(\text{Disruption}) > 0.5$) with a mean lag of **10.2 weeks** after the physical shock occurs. This lag was observed in 20 out of 30 test runs; the remaining 10 runs had disruptions too short (1-5 weeks) for the signal to propagate to the DR before recovery. At higher confidence thresholds: $P > 0.7$ yields a mean lag of 10.2 weeks (20/30 runs); $P > 0.9$ yields 10.1 weeks (18/30 runs) — indicating rapid convergence once the signal arrives.
 
-**Recovery detection lag:** Recovery is detected with a mean lag of **4.0 weeks**, significantly faster than disruption detection. This asymmetry occurs because the recovery signal (a sudden surge in shipments after a period of near-zero deliveries) is more distinctive than the disruption signal (a gradual reduction as MN inventory buffers deplete).
+**Recovery detection lag:** Recovery was detected in **19 out of 30 runs**, with a mean lag of **4.1 weeks** (median: 4.0, range: 4–5). In the remaining 11 runs, the disruption was of insufficient duration to trigger a formal Recovery phase (MN backlog never exceeded the 50-unit threshold), so no post-disruption Recovery label existed to detect. Among runs where Recovery did occur, detection is significantly faster than disruption detection. This asymmetry occurs because the recovery signal (a sudden surge in shipments after a period of near-zero deliveries) is more distinctive than the disruption signal (a gradual reduction as MN inventory buffers deplete).
 
 ### 6.4 Viterbi Algorithm Results
 

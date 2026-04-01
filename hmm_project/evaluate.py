@@ -35,22 +35,29 @@ def load_processed_data():
     )
 
 
-def compute_detection_lag(filtered_probs, true_states, target_state, threshold=0.5):
+def compute_detection_lag(filtered_probs, true_states, target_state, threshold=0.5,
+                          search_after=0):
     """
     Compute how many periods after a state first appears in ground truth
     until the Forward algorithm pushes P(state) above threshold.
 
+    search_after: only begin scanning for the target state at or after this
+                  time index.  Pass DISRUPTION_ONSET when measuring the
+                  Recovery lag so the startup transient (MN begins with zero
+                  inventory, briefly triggering a Recovery label near t=0)
+                  is excluded.
+
     Returns lag (int) or None if threshold never exceeded.
     """
-    # Find first period where target state appears in ground truth
+    # Find first period at or after search_after where target state appears
     first_true = None
-    for t in range(len(true_states)):
+    for t in range(search_after, len(true_states)):
         if true_states[t] == target_state:
             first_true = t
             break
 
     if first_true is None:
-        return None  # State never appears
+        return None  # State never appears (after search_after)
 
     # Find first period at or after first_true where P(state) > threshold
     for t in range(first_true, len(filtered_probs)):
@@ -207,8 +214,9 @@ def run_evaluation(verbose=True):
         if lag_d is not None:
             disruption_lags.append(lag_d)
 
-        # Detection lag for recovery
-        lag_r = compute_detection_lag(filtered, true_s, RECOVERY, threshold=0.5)
+        # Detection lag for recovery (only post-disruption onset; skip startup transient)
+        lag_r = compute_detection_lag(filtered, true_s, RECOVERY, threshold=0.5,
+                                      search_after=DISRUPTION_ONSET)
         if lag_r is not None:
             recovery_lags.append(lag_r)
 
