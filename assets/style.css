@@ -1,0 +1,167 @@
+/* Palette variables */
+:root{
+    --black: #000000;
+    --white: #FFFFFF;
+    --light-gray: #E1E1E1; /* 35% white-ish */
+    --red: #C8102E;
+    --gold: #C8A978;
+}
+
+/* Global */
+body{
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--light-gray);
+    color: var(--black);
+}
+
+.app-container{
+    max-width: 1100px;
+    margin: 24px auto;
+    padding: 16px;
+}
+
+/* Title section */
+.title-section{
+    background: linear-gradient(90deg, var(--red), var(--white));
+    text-align: center;
+    padding: 28px 20px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border: 2px solid rgba(0,0,0,0.06);
+    border-left: 6px solid var(--gold); /* gold accent */
+}
+.title-section h1{
+    margin: 0 0 8px 0;
+    font-size: 1.9rem;
+}
+.title-section .meta{
+    color: var(--black);
+    margin-top: 6px;
+}
+
+/* Setup and results sections */
+.setup-section, .results-section{
+    margin-top: 18px;
+    /* subtle red-tinted background for main divs */
+    background: linear-gradient(180deg, rgba(200,16,46,0.03), var(--white));
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 6px 18px rgba(200,16,46,0.04);
+    border-left: 6px solid var(--red); /* red for main divs */
+}
+
+.setup-section h3, .results-section h3{
+    margin-top: 0;
+    color: var(--black); /* heading color uses red to denote main areas */
+}
+
+.config-area{
+    width: 100%;
+    min-height: 220px;
+    font-family: monospace;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Agent columns */
+.agent-columns{
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+.agent-column{
+    flex: 1 1 0;
+    background: linear-gradient(180deg, rgba(200,16,46,0.02), var(--white));
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 180px;
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.agent-column-title{
+    margin: 6px 0 12px 0;
+    color: var(--red);
+}
+.agent-icon{
+    width: 48px;
+    display: block;
+    margin: 0 auto 6px auto;
+}
+.agent-card{
+    margin-bottom: 10px;
+    border-radius: 6px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.agent-card summary{
+    cursor: pointer;
+    font-weight: 600;
+}
+.agent-card-body{
+    margin-top: 8px;
+}
+.add-button{
+    margin-top: 8px;
+    background: transparent;
+    border: 1px dashed rgba(0,0,0,0.06);
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.save-button{ background-color: var(--gold); color: var(--black); border:none; padding:6px 10px; border-radius:4px; margin-right:6px }
+.delete-button{ background-color: transparent; border:1px solid rgba(0,0,0,0.06); padding:6px 10px; border-radius:4px }
+
+/* Buttons */
+button.run-button, button#run-button{
+    background-color: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button.download-button, button#download-button{
+    background-color: var(--gold);
+    color: var(--black);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(200,169,120,0.15);
+}
+
+button#use-defaults{
+    background: transparent;
+    border: 1px dashed rgba(0,0,0,0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Status and graph */
+.run-status{
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    /* gold accent background for status */
+    background: linear-gradient(90deg, rgba(200,169,120,0.06), rgba(0,0,0,0.01));
+    border-left: 4px solid var(--gold);
+}
+
+.inventory-graph{
+    min-height: 320px;
+}
+
+/* Responsive */
+@media (max-width: 800px){
+    .app-container{ padding: 12px; }
+    .setup-section, .results-section{ padding: 12px; }
+}
