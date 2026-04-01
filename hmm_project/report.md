@@ -201,20 +201,20 @@ Here alpha = 1 is the Laplace smoothing constant, which prevents zero probabilit
 ### 5.4 Observation Signal-to-Noise Ratio
 
 ![Observation Frequency Heatmap](results/observation_frequency_heatmap.png)
-*Figure 3a: Observation frequency per state from the test data. Each cell shows the percentage (and count) of periods in that state emitting that observation. The strong diagonal pattern confirms that each state produces a distinct emission signature.*
+*Figure 3: Observation frequency per state from the test data. Each cell shows the percentage (and count) of periods in that state emitting that observation. The strong diagonal pattern confirms that each state produces a distinct emission signature.*
 
 The heatmap reveals clear signal separation: Steady State overwhelmingly emits observation 1 (None-BL, Normal-Ship, 64.6%), Disruption concentrates on observation 3 (High-BL, Zero/Low-Ship, 55.2%), and Recovery is dominated by observation 5 (High-BL, Surge-Ship, 34.8%) alongside observation 3 (42.7%). The overlap between Disruption and Recovery on observation 3 reflects the physical reality that both states involve high backlogs — the distinguishing signal is the shipment level (Zero/Low vs. Surge).
 
 ### 5.5 Trained Parameters
 
 ![Trained Matrices](results/trained_matrices.png)
-*Figure 3: Trained HMM parameters. Left: Transition matrix $A$ showing high self-transition probabilities (0.978 for Steady, 0.921 for Disruption, 0.870 for Recovery). Right: Emission matrix $B$ showing clear state-observation separation.*
+*Figure 4: Trained HMM parameters. Left: Transition matrix $A$ showing high self-transition probabilities (0.978 for Steady, 0.921 for Disruption, 0.870 for Recovery). Right: Emission matrix $B$ showing clear state-observation separation.*
 
 **Key observations:**
 - The learned Disruption self-transition probability is 0.9209, which closely matches $1 - p = 0.92$, confirming that the trained HMM recovers the Geometric parameter $p = 0.08$. This validates both the training procedure and the Geometric encoding.
 - The Steady state emits observation 1 (None-BL, Normal-Ship) with probability 0.764, consistent with normal operations.
 - The Disruption state emits observation 3 (High-BL, Zero/Low-Ship) with probability 0.445, reflecting the reduced shipments and growing backlog.
-- The Recovery state emits observation 5 (High-BL, Surge-Ship) with probability 0.514, capturing the backlog-clearing surge after capacity restoration.
+- The Recovery state emits observation 5 (High-BL, Surge-Ship) with probability 0.114, capturing the backlog-clearing surge after capacity restoration.
 
 ---
 
@@ -281,10 +281,10 @@ We derived these algorithms mathematically for completeness; for execution, we l
 ### 6.3 Forward Algorithm Results
 
 ![Hero Figure](results/hero_figure.png)
-*Figure 4: HMM disruption detection for a single test run. Top: ground-truth state sequence. Middle: Viterbi-decoded state sequence. Bottom: Forward-filtered probabilities P(State | observations) over time. Vertical lines mark the actual disruption onset and MN recovery.*
+*Figure 5: HMM disruption detection for a single test run. Top: ground-truth state sequence. Middle: Viterbi-decoded state sequence. Bottom: Forward-filtered probabilities P(State | observations) over time. Vertical lines mark the actual disruption onset and MN recovery.*
 
 ![Detection Lag Histogram](results/detection_lag_histogram.png)
-*Figure 5: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) > 0.5), mean = 10.2 weeks. Right: Recovery detection lag, mean = 4.0 weeks.*
+*Figure 6: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) > 0.5), mean = 10.2 weeks. Right: Recovery detection lag, mean = 4.0 weeks.*
 
 **Disruption detection lag:** The Forward algorithm detects disruption (pushes $P(\text{Disruption}) > 0.5$) with a mean lag of **10.2 weeks** after the physical shock occurs. This lag was observed in 20 out of 30 test runs; the remaining 10 runs had disruptions too short (1-5 weeks) for the signal to propagate to the DR before recovery. At higher confidence thresholds: $P > 0.7$ yields a mean lag of 10.2 weeks (20/30 runs); $P > 0.9$ yields 10.1 weeks (18/30 runs) — indicating rapid convergence once the signal arrives.
 
@@ -293,7 +293,7 @@ We derived these algorithms mathematically for completeness; for execution, we l
 ### 6.4 Viterbi Algorithm Results
 
 ![Confusion Matrix](results/confusion_matrix.png)
-*Figure 6: Viterbi classification confusion matrix across all 30 test runs (2,400 total periods). Row-normalized percentages shown in parentheses.*
+*Figure 7: Viterbi classification confusion matrix across all 30 test runs (2,400 total periods). Row-normalized percentages shown in parentheses.*
 
 | Metric | Value |
 |--------|-------|
@@ -348,7 +348,7 @@ The mean disruption detection lag of 10.2 weeks is a combination of physical sup
 
 Once the physical signal reaches the DR, the HMM does not immediately classify it as a Disruption. Because the learned transition probability of remaining in a Steady State is extremely high (a00 = 0.978), the Forward algorithm initially treats the first few abnormal observations as transient noise. It requires a sustained sequence of abnormal emissions (specifically observation 3: High-Backlog, Zero/Low-Shipment) to mathematically overcome the Steady State prior and push the filtered probability P(Disruption) above 0.5.
 
-This decomposition is validated by our lead-time adjusted evaluation in Section 6.5: shifting the ground truth by the 4-week physical delay improves overall accuracy from 80.0% to 85.2% and disruption precision to 98.4%, confirming that the physical propagation accounts for roughly half the total detection lag.
+This decomposition is validated by our lead-time adjusted evaluation in Section 6.5: shifting the ground truth by the 4-week physical delay improves overall accuracy from 80.0% to 85.2% and disruption precision to 98.4%, confirming that the physical propagation accounts for roughly half the total detection lag. The tight clustering of lag values visible in Figure 6 — with most detections concentrated within two weeks of the mean — further confirms that this delay is primarily governed by the deterministic lead-time structure rather than stochastic variation.
 
 ### 7.2 Low Recall for Short Disruptions
 
