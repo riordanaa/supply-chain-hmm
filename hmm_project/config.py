@@ -58,6 +58,10 @@ OBS_NAMES = [
 # --- Data Split ---
 TRAIN_FRACTION = 0.7  # 70 train, 30 test
 
+# --- Lead-Time Adjusted Evaluation ---
+LEAD_TIME_SHIFT = 4              # MN_PROD_LEAD_TIME (2) + MN_LEAD_TIME (2)
+MICRO_DISRUPTION_THRESHOLD = 5   # disruptions <= 5 weeks are physically unobservable
+
 # --- Warmup Truncation ---
 WARMUP_PERIODS = 10          # drop first 10 periods from training sequences
                              # (removes artificial backlog from MN_ss=0 startup,

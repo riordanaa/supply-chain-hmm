@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from config import (
     STEADY, DISRUPTION, RECOVERY, STATE_NAMES,
-    N_OBS, DISRUPTION_ONSET
+    N_OBS, DISRUPTION_ONSET, LEAD_TIME_SHIFT, MICRO_DISRUPTION_THRESHOLD
 )
 from hmm_model import SupervisedHMM
 
@@ -100,6 +100,76 @@ def compute_viterbi_metrics(viterbi_paths, true_state_sequences):
         }
 
     return accuracy, cm, per_state
+
+
+def compute_shifted_viterbi_metrics(viterbi_paths, true_state_sequences, shift=LEAD_TIME_SHIFT):
+    """
+    Compute Viterbi metrics with ground-truth labels shifted forward by `shift` periods.
+
+    This accounts for the physical lead-time: the DR cannot observe any MN event
+    until `shift` weeks later, so comparing Viterbi output at time t against the
+    ground truth at time (t - shift) gives a fairer evaluation.
+
+    Implementation: truncate the first `shift` periods from ground truth and the
+    last `shift` periods from predictions, so they align.
+    """
+    shifted_true_list = []
+    shifted_pred_list = []
+
+    for true_s, pred_s in zip(true_state_sequences, viterbi_paths):
+        true_arr = np.asarray(true_s)
+        pred_arr = np.asarray(pred_s)
+        T = min(len(true_arr), len(pred_arr))
+
+        if T <= shift:
+            continue
+
+        # At time t, the DR's prediction should be compared against
+        # the MN's state at time (t - shift)
+        shifted_true = true_arr[:T - shift]   # ground truth from t=0 to T-shift-1
+        shifted_pred = pred_arr[shift:]        # predictions from t=shift to T-1
+        shifted_true_list.append(shifted_true)
+        shifted_pred_list.append(shifted_pred)
+
+    return compute_viterbi_metrics(shifted_pred_list, shifted_true_list)
+
+
+def compute_filtered_accuracy(viterbi_paths, true_state_sequences, test_metadata,
+                               max_weeks=MICRO_DISRUPTION_THRESHOLD):
+    """
+    Compute Viterbi accuracy excluding runs where the disruption lasted <= max_weeks.
+
+    These micro-disruptions are physically absorbed by safety stock buffers
+    and leave no observable trace for the DR to detect.
+    """
+    filtered_pred = []
+    filtered_true = []
+    n_excluded = 0
+
+    for pred_s, true_s, meta in zip(viterbi_paths, true_state_sequences, test_metadata):
+        onset = meta["onset"]
+        recovery = meta.get("recovery_time")
+
+        # Compute disruption duration
+        if recovery is not None:
+            duration = recovery - onset
+        else:
+            duration = float('inf')  # never recovered — include this run
+
+        if duration <= max_weeks:
+            n_excluded += 1
+            continue
+
+        filtered_pred.append(pred_s)
+        filtered_true.append(true_s)
+
+    if not filtered_pred:
+        return None, None, None, 0, n_excluded
+
+    accuracy, cm, per_state = compute_viterbi_metrics(filtered_pred, filtered_true)
+    n_included = len(filtered_pred)
+
+    return accuracy, cm, per_state, n_included, n_excluded
 
 
 def run_evaluation(verbose=True):
@@ -211,6 +281,47 @@ def run_evaluation(verbose=True):
             print(f"{s_name:>14s}  {metrics['precision']:8.4f}  {metrics['recall']:8.4f}  "
                   f"{metrics['f1']:8.4f}  {metrics['support']:8d}")
 
+    # --- Lead-Time Adjusted Metrics ---
+    adj_accuracy, adj_cm, adj_per_state = compute_shifted_viterbi_metrics(
+        all_viterbi, test_states, shift=LEAD_TIME_SHIFT
+    )
+
+    # --- Filtered Accuracy (excluding micro-disruptions) ---
+    filt_accuracy, filt_cm, filt_per_state, n_included, n_excluded = compute_filtered_accuracy(
+        all_viterbi, test_states, test_metadata, max_weeks=MICRO_DISRUPTION_THRESHOLD
+    )
+
+    if verbose:
+        print(f"\n--- Lead-Time Adjusted Performance (ground truth shifted +{LEAD_TIME_SHIFT} weeks) ---")
+        print(f"  Adjusted accuracy: {adj_accuracy:.4f} ({adj_accuracy*100:.1f}%)")
+
+        print(f"\n  Adjusted Confusion Matrix (rows=true, cols=predicted):")
+        print(f"{'':>14s}", end="")
+        for j in range(3):
+            print(f"  {STATE_NAMES[j]:>12s}", end="")
+        print()
+        for i in range(3):
+            print(f"{STATE_NAMES[i]:>14s}", end="")
+            for j in range(3):
+                print(f"  {adj_cm[i, j]:12d}", end="")
+            print()
+
+        print(f"\n  Adjusted Per-State Metrics:")
+        print(f"{'State':>14s}  {'Prec':>8s}  {'Recall':>8s}  {'F1':>8s}  {'Support':>8s}")
+        for s_name, metrics in adj_per_state.items():
+            print(f"{s_name:>14s}  {metrics['precision']:8.4f}  {metrics['recall']:8.4f}  "
+                  f"{metrics['f1']:8.4f}  {metrics['support']:8d}")
+
+        print(f"\n--- Filtered Accuracy (excluding disruptions <= {MICRO_DISRUPTION_THRESHOLD} weeks) ---")
+        print(f"  Runs excluded: {n_excluded}, Runs included: {n_included}")
+        if filt_accuracy is not None:
+            print(f"  Filtered accuracy: {filt_accuracy:.4f} ({filt_accuracy*100:.1f}%)")
+            print(f"\n  Filtered Per-State Metrics:")
+            print(f"{'State':>14s}  {'Prec':>8s}  {'Recall':>8s}  {'F1':>8s}  {'Support':>8s}")
+            for s_name, metrics in filt_per_state.items():
+                print(f"{s_name:>14s}  {metrics['precision']:8.4f}  {metrics['recall']:8.4f}  "
+                      f"{metrics['f1']:8.4f}  {metrics['support']:8d}")
+
     # Return everything for visualization
     results = {
         "model": model,
@@ -224,6 +335,14 @@ def run_evaluation(verbose=True):
         "accuracy": accuracy,
         "confusion_matrix": cm,
         "per_state_metrics": per_state,
+        "adj_accuracy": adj_accuracy,
+        "adj_confusion_matrix": adj_cm,
+        "adj_per_state_metrics": adj_per_state,
+        "filt_accuracy": filt_accuracy,
+        "filt_confusion_matrix": filt_cm,
+        "filt_per_state_metrics": filt_per_state,
+        "filt_n_included": n_included,
+        "filt_n_excluded": n_excluded,
     }
 
     # Save results

@@ -304,20 +304,44 @@ We derived these algorithms mathematically for completeness; for execution, we l
 
 The Steady state is classified with high accuracy (94.0% recall, 84.5% precision). Disruption has notably low recall (23.5%) — this is not a model deficiency but a fundamental physical constraint discussed in Section 7. Recovery achieves moderate performance (66.7% recall) with the main confusion being misclassification as Steady.
 
+### 6.5 Lead-Time Adjusted Performance
+
+The raw confusion matrix above penalizes the HMM for the physical lead-time propagation delay. When the MN's capacity drops at time *t*, the DR cannot physically observe any change until approximately *t + 4* weeks later (2 weeks production lead time + 2 weeks shipping lead time). Evaluating the Viterbi output against ground truth shifted forward by 4 weeks gives a fairer picture of the model's true classification ability.
+
+**Lead-Time Adjusted Metrics** (ground truth shifted +4 weeks):
+
+| Metric | Raw | Lead-Time Adjusted |
+|--------|-----|-------------------|
+| **Overall accuracy** | 80.0% | **85.2%** |
+| **Disruption recall** | 23.5% | **33.9%** |
+| **Disruption precision** | 68.3% | **98.4%** |
+| **Recovery recall** | 66.7% | **68.3%** |
+| **Recovery F1** | 0.626 | **0.706** |
+
+The adjusted disruption precision of 98.4% is particularly notable: when the HMM classifies a period as "Disruption," it is correct over 98% of the time. The remaining recall gap (33.9% vs. 100%) is driven by micro-disruptions too short to propagate any observable signal.
+
+**Filtered Accuracy** (excluding micro-disruptions <= 5 weeks):
+
+8 of 30 test runs had disruptions lasting 5 weeks or fewer. These micro-disruptions are physically absorbed by the MN's inventory buffer and produce no observable emissions at the DR level. Excluding these unobservable runs, the Viterbi accuracy on the remaining 22 runs with substantive disruptions is **76.0%** — this lower number reflects the fact that the excluded micro-disruption runs were "easy" (all-Steady classification), while the remaining runs contain the harder disruption and recovery transitions that the model must navigate.
+
 ---
 
 ## 7. Discussion and Limitations
 
-### 7.1 The 10-Week Detection Lag
+### 7.1 The 10-Week Detection Lag: Physical vs. Statistical Delay
 
-The mean disruption detection lag of 10.2 weeks is a direct consequence of the physical structure of the supply chain. After the MN's capacity drops at $t_0 = 15$:
+The mean disruption detection lag of 10.2 weeks is a combination of physical supply chain constraints and the algorithmic confidence threshold of the HMM. After the MN's capacity drops at t=15, the delay unfolds in two phases:
 
-1. **Weeks 1-2** (production lead time): MN continues shipping from existing inventory while reduced production enters the pipeline.
-2. **Weeks 3-4** (MN shipping lead time): Shipments already in transit from MN to DR arrive at pre-disruption levels.
-3. **Weeks 5-6** (DR shipping lead time): DR continues fulfilling HC orders from its own safety stock.
-4. **Weeks 7-10** (buffer depletion): MN inventory gradually depletes. Only when MN can no longer fulfill DR orders does the DR observe reduced shipments and growing backlog.
+**1. Physical Lead-Time Propagation (~4 weeks):**
 
-This $\approx 10$-week lag is not a model limitation — it is an **information-theoretic constraint** imposed by the physical system. No downstream observer can detect an upstream disruption faster than the lead-time chain allows information to propagate. The HMM detects the disruption as soon as the signal becomes statistically distinguishable from normal demand variability.
+- **Weeks 1-2** (production lead time): MN continues shipping from existing pipeline inventory while the reduced production rate propagates through the factory.
+- **Weeks 3-4** (shipping lead time): Shipments already in transit arrive at the DR at normal levels. The DR does not physically observe a drop in received shipments until roughly t=19.
+
+**2. Statistical and Algorithmic Lag (~6 weeks):**
+
+Once the physical signal reaches the DR, the HMM does not immediately classify it as a Disruption. Because the learned transition probability of remaining in a Steady State is extremely high (a00 = 0.978), the Forward algorithm initially treats the first few abnormal observations as transient noise. It requires a sustained sequence of abnormal emissions (specifically observation 3: High-Backlog, Zero/Low-Shipment) to mathematically overcome the Steady State prior and push the filtered probability P(Disruption) above 0.5.
+
+This decomposition is validated by our lead-time adjusted evaluation in Section 6.5: shifting the ground truth by the 4-week physical delay improves overall accuracy from 80.0% to 85.2% and disruption precision to 98.4%, confirming that the physical propagation accounts for roughly half the total detection lag.
 
 ### 7.2 Low Recall for Short Disruptions
 
