@@ -5,9 +5,9 @@ All tunable parameters in one place for reproducibility.
 
 # --- Simulation Parameters ---
 N_RUNS = 100
-SIM_PERIODS = 80            # weeks per run (enough for pre-disruption, disruption, recovery, return to steady)
+SIM_PERIODS = 150           # weeks per run (extended from 80 to fit longer p=0.04 disruptions + recovery)
 DISRUPTION_ONSET = 15       # fixed onset week (gives ~15 weeks of steady-state warmup)
-GEOM_P = 0.08               # P(recover each week) => expected disruption duration ~12.5 weeks
+GEOM_P = 0.04               # P(recover each week) => expected disruption duration ~25 weeks
 PRODUCTION_MAX = 800         # MN max production capacity (high enough for fulfillment + recovery)
 DISRUPTION_FACTOR = 0.05     # capacity drops to 5% (40 units/week vs ~200 demand)
 

@@ -2,9 +2,9 @@
   "run_id": 66,
   "onset": 15,
   "recovery_time": 21,
-  "geom_p": 0.08,
+  "geom_p": 0.04,
   "disruption_factor": 0.05,
   "seed_numpy": 108,
   "seed_disruption": 10108,
-  "sim_periods": 80
+  "sim_periods": 150
 }

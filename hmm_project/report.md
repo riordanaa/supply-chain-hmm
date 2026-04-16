@@ -113,7 +113,7 @@ To verify whether the supply chain naturally satisfies this property, we ran 200
 
 **Test 2: Markov Order.** We compared first-order vs. second-order Markov models using a likelihood ratio test. The second-order model was significantly better ($\chi^2 = 175.7$, $df = 12$, $p < 0.001$), confirming that the natural system has memory beyond one time step.
 
-![Memoryless Property Analysis](results/memoryless_property_test.png)
+![Memoryless Property Analysis](p08/results/memoryless_property_test.png)
 *Figure 1: Memoryless property analysis. Top: Recovery and Disruption dwell time histograms with Geometric fit overlay (both rejected). Bottom-left: Example state sequence. Bottom-right: Empirical first-order transition matrix.*
 
 ### 3.3 Justification for Geometric Encoding
@@ -159,7 +159,7 @@ We generated 100 simulation runs, each spanning 80 weeks. The disruption onset i
 
 The data was split into 70 training runs and 30 testing runs. A 10-period warmup truncation was applied to training sequences to remove the transient startup artifact (MN starts with zero inventory, creating an artificial backlog), ensuring the initial state distribution $\pi$ correctly reflects a Steady State baseline.
 
-![Raw DR Signals](results/raw_signals.png)
+![Raw DR Signals](p08/results/raw_signals.png)
 *Figure 2: Raw signals for a single simulation run. Top: DR shipment received (drops to ~0 during disruption, surges during recovery). Middle: DR backlog (rises sharply with lag). Bottom: MN production capacity (the hidden variable the DR cannot observe). Background shading indicates ground-truth state.*
 
 ---
@@ -200,14 +200,14 @@ Here alpha = 1 is the Laplace smoothing constant, which prevents zero probabilit
 
 ### 5.4 Observation Signal-to-Noise Ratio
 
-![Observation Frequency Heatmap](results/observation_frequency_heatmap.png)
+![Observation Frequency Heatmap](p08/results/observation_frequency_heatmap.png)
 *Figure 3a: Observation frequency per state from the test data. Each cell shows the percentage (and count) of periods in that state emitting that observation. The strong diagonal pattern confirms that each state produces a distinct emission signature.*
 
 The heatmap reveals clear signal separation: Steady State overwhelmingly emits observation 1 (None-BL, Normal-Ship, 64.6%), Disruption concentrates on observation 3 (High-BL, Zero/Low-Ship, 55.2%), and Recovery is dominated by observation 5 (High-BL, Surge-Ship, 34.8%) alongside observation 3 (42.7%). The overlap between Disruption and Recovery on observation 3 reflects the physical reality that both states involve high backlogs — the distinguishing signal is the shipment level (Zero/Low vs. Surge).
 
 ### 5.5 Trained Parameters
 
-![Trained Matrices](results/trained_matrices.png)
+![Trained Matrices](p08/results/trained_matrices.png)
 *Figure 3: Trained HMM parameters. Left: Transition matrix $A$ showing high self-transition probabilities (0.978 for Steady, 0.921 for Disruption, 0.870 for Recovery). Right: Emission matrix $B$ showing clear state-observation separation.*
 
 **Key observations:**
@@ -280,10 +280,10 @@ We derived these algorithms mathematically for completeness; for execution, we l
 
 ### 6.3 Forward Algorithm Results
 
-![Hero Figure](results/hero_figure.png)
+![Hero Figure](p08/results/hero_figure.png)
 *Figure 4: HMM disruption detection for a single test run. Top: ground-truth state sequence. Middle: Viterbi-decoded state sequence. Bottom: Forward-filtered probabilities P(State | observations) over time. Vertical lines mark the actual disruption onset and MN recovery.*
 
-![Detection Lag Histogram](results/detection_lag_histogram.png)
+![Detection Lag Histogram](p08/results/detection_lag_histogram.png)
 *Figure 5: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) > 0.5), mean = 10.2 weeks. Right: Recovery detection lag, mean = 4.0 weeks.*
 
 **Disruption detection lag:** The Forward algorithm detects disruption (pushes $P(\text{Disruption}) > 0.5$) with a mean lag of **10.2 weeks** after the physical shock occurs. This lag was observed in 20 out of 30 test runs; the remaining 10 runs had disruptions too short (1-5 weeks) for the signal to propagate to the DR before recovery. At higher confidence thresholds: $P > 0.7$ yields a mean lag of 10.2 weeks (20/30 runs); $P > 0.9$ yields 10.1 weeks (18/30 runs) — indicating rapid convergence once the signal arrives.
@@ -292,7 +292,7 @@ We derived these algorithms mathematically for completeness; for execution, we l
 
 ### 6.4 Viterbi Algorithm Results
 
-![Confusion Matrix](results/confusion_matrix.png)
+![Confusion Matrix](p08/results/confusion_matrix.png)
 *Figure 6: Viterbi classification confusion matrix across all 30 test runs (2,400 total periods). Row-normalized percentages shown in parentheses.*
 
 | Metric | Value |
@@ -359,6 +359,59 @@ For disruptions lasting longer than 10 weeks (where the signal fully propagates)
 ### 7.3 Robustness to Markov Violations
 
 As demonstrated in Section 3, the natural supply chain violates the strict memoryless property. Our Geometric encoding enforces the Markov assumption at the Disruption state level, but the Recovery state retains mild memory (backlog clearing is deterministic given the accumulation). Despite this, the HMM performs well — consistent with the extensive literature showing HMM robustness to moderate Markov violations in speech recognition, genomics, and financial time series.
+
+### 7.4 Robustness Check: Halved Disruption Probability ($p = 0.04$)
+
+A single successful recovery of the Geometric parameter ($\hat{a}_{11} = 0.921 \approx 1 - 0.08$) could, in principle, be coincidence. To test whether the supervised MLE genuinely recovers the underlying rate — rather than reproducing one fitted number by luck — we repeated the entire pipeline under a different regime: $p = 0.04$ (halved recovery probability, doubling the expected disruption duration to 25 weeks). Because disruptions are now longer, we also extended `SIM_PERIODS` from 80 to 150 so the simulation window accommodates a full disruption + recovery cycle. All other parameters (network topology, lead times, observation thresholds, 70/30 split, seeds) are identical to the baseline. Configuration snapshots, data, and figures for both regimes are preserved in `hmm_project/p08/` and `hmm_project/p04/`.
+
+**The MLE recovers the new rate.** The trained transition matrix under $p = 0.04$ is:
+
+$$
+\hat{A}_{p=0.04} = \begin{pmatrix}
+0.9887 & 0.0099 & 0.0014 \\
+0.0120 & \mathbf{0.9613} & 0.0267 \\
+0.0738 & 0.0013 & 0.9248
+\end{pmatrix}
+$$
+
+Side-by-side comparison of the Disruption self-loop:
+
+| Quantity | $p = 0.08$ (baseline) | $p = 0.04$ (this check) | Expected ($= 1 - p$) |
+|----------|:---:|:---:|:---:|
+| $\hat{a}_{11}$ | 0.9209 | **0.9613** | 0.96 |
+| Total exit rate from Disruption ($\hat{a}_{10} + \hat{a}_{12}$) | 0.0791 | **0.0387** | 0.04 |
+
+The deviation from the theoretical value is under 0.002 in both regimes. This is a **second, independent validation** of the Geometric-encoding approach: the supervised MLE recovers the correct Geometric parameter regardless of which $p$ we use to generate the data, confirming that the method is identifying the rate — not fitting a single number.
+
+**Detection quality improves on every axis.**
+
+| Metric | $p = 0.08$ | $p = 0.04$ |
+|--------|:---:|:---:|
+| Overall Viterbi accuracy | 80.0% | **86.8%** |
+| Improvement over majority-class baseline | +7.8 pp | **+12.9 pp** |
+| Lead-time-adjusted accuracy | 85.2% | **93.7%** |
+| Lead-time-adjusted Disruption precision | 98.4% | **100.0%** |
+| Lead-time-adjusted Disruption recall | 33.9% | **76.6%** |
+| Filtered accuracy (excluding micro-disruptions) | 76.0% | **85.7%** |
+| Runs with Forward-detected disruption ($P > 0.5$) | 20 / 30 | **24 / 30** |
+| Micro-disruptions ($\leq 5$ wk) in test set | 8 / 30 | 4 / 30 |
+
+The most striking change is the near-tripling of lead-time-adjusted Disruption recall (33.9% → 76.6%). With longer average disruptions, fewer episodes are absorbed by the MN's inventory buffer before the signal propagates to the DR; the Viterbi path therefore spends proportionally more time correctly in the Disruption state rather than being "swallowed" at the episode edges.
+
+**The physical detection lag is unchanged.** Disruption detection lag remains at 10.2 weeks (mean), and recovery detection lag at 4.0 weeks, in both regimes. This was predicted: as discussed in Section 7.1, the lag is dictated by the physical pipeline (≈4 weeks propagation) plus the time needed for sustained abnormal emissions to overcome the strong Steady prior — neither of which is a function of $p$. That the lag did not move under a doubled disruption duration is itself a corroboration of the physical-vs-statistical decomposition argument.
+
+**Figures for the $p = 0.04$ regime** — regenerated via the same `visualize.py` pipeline and archived under `hmm_project/p04/results/` — are shown below.
+
+![Trained Matrices ($p = 0.04$)](p04/results/trained_matrices.png)
+*Figure 7: Trained HMM parameters under $p = 0.04$. Left: Transition matrix $A$ with the Disruption self-loop now at 0.961 ($\approx 1 - 0.04$), cleanly recovering the new Geometric parameter. Right: Emission matrix $B$ — sharper state–observation separation than the baseline (Disruption → obs=3 at 0.674 vs. 0.445; Recovery → obs=5 at 0.726 vs. 0.514), as longer episodes spend more periods in the fully-propagated DR-visible regime.*
+
+![Hero Figure ($p = 0.04$)](p04/results/hero_figure.png)
+*Figure 8: HMM disruption detection on a single $p = 0.04$ test run. Compared to Figure 4, the disruption window is markedly longer (tracks with expected duration $1/p = 25$ weeks), and the Forward filter holds $P(\text{Disruption}) \approx 1$ for a correspondingly longer stretch once the signal propagates.*
+
+![Confusion Matrix ($p = 0.04$)](p04/results/confusion_matrix.png)
+*Figure 9: Viterbi classification confusion matrix under $p = 0.04$. The diagonal is substantially stronger than Figure 6 — Disruption recall rises from 23.5% (baseline) to 63.5% even before lead-time adjustment, and to 76.6% after.*
+
+**Takeaway.** The Geometric encoding is not fragile to the choice of $p$. The supervised-MLE training pipeline recovers the true Geometric rate across at least two distinct parameterizations, and detection quality scales predictably with disruption duration while the physical lag stays invariant.
 
 ---
 
