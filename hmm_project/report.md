@@ -162,6 +162,29 @@ The data was split into 70 training runs and 30 testing runs. A 10-period warmup
 ![Raw DR Signals](p08/results/raw_signals.png)
 *Figure 2: Raw signals for a single simulation run. Top: DR shipment received (drops to ~0 during disruption, surges during recovery). Middle: DR backlog (rises sharply with lag). Bottom: MN production capacity (the hidden variable the DR cannot observe). Background shading indicates ground-truth state.*
 
+### 4.4 Deterministic Recovery Clearing Rate
+
+Each run contains exactly one disruption episode followed by a Recovery phase during which the MN clears accumulated backlog. A mass balance at the manufacturer implies that recovery duration should scale linearly with disruption duration — and importantly, **the slope should not depend on** $p$ (which controls only the *distribution* of disruption durations, not the physical clearing dynamics of any individual episode).
+
+**Theoretical slope.** During disruption, MN production drops to 40 units/week while demand is 200, so MN backlog accumulates at $200 - 40 = 160$ units/week. During recovery, MN restores 800/week production, so backlog clears at $800 - 200 = 600$ units/week. The naive MN-only mass-balance prediction is therefore $\text{slope}_{\text{naive}} = 160/600 \approx 0.267$, shown as the dashed green reference line in the scatter plots below.
+
+A small number of runs (3 under $p=0.08$, 5 under $p=0.04$) have disruptions long enough that the simulation window ends mid-episode, right-censoring the observed recovery duration below its true value. These runs are excluded from the analysis.
+
+![Combined scatter](results/recovery_vs_disruption_combined.png)
+*Figure 7: Recovery vs. Disruption duration across both regimes. Both regimes fall on essentially the same line, confirming the slope is $p$-invariant. The dashed black line is the naive MN-only prediction (slope 0.267).*
+
+![p=0.08 scatter](p08/results/recovery_vs_disruption.png)
+*Figure 8: $p = 0.08$ baseline. Fitted slope 0.582, intercept $-0.11$, $R^2 = 0.811$ (n = 97 complete runs).*
+
+![p=0.04 scatter](p04/results/recovery_vs_disruption.png)
+*Figure 9: $p = 0.04$ robustness check. Fitted slope 0.535, intercept $+0.44$, $R^2 = 0.939$ (n = 95 complete runs).*
+
+**Why the empirical slope (≈ 0.55) differs from the naive 0.267.** The naive calculation treats the MN in isolation. In reality the clearing rate is set by the coupled MN/DR system. Once the DR's 500-unit safety stock is depleted (within ~3 weeks of disruption onset), its base-stock policy orders up to 500 units/week from the MN — not just 200 — to restore target inventory. MN backlog thus accumulates faster than $200 - 40$ once the DR runs empty. During recovery, DR orders remain elevated because DR inventory has not yet normalized, so the MN must allocate most of its restored 800/wk production to meeting ongoing demand, leaving less than 600/wk to reduce its own backlog. An extreme coupled-system upper bound assuming sustained 500-unit/wk ordering throughout would give $(500-40)/(800-500) \approx 1.53$; the observed 0.55 lies between the naive and this upper bound.
+
+**Why the two regimes agree.** The slopes 0.582 and 0.535 differ by under 10% — consistent with sampling noise on ~95 runs. The clearing rate depends on **physical** parameters (capacity, demand, safety stocks, lead times), not on $p$. The two regimes producing nearly identical slopes despite a 2× difference in mean disruption duration provides the same kind of structural validation as the $\hat{a}_{11}$ recovery in Section 7.4 — here at the level of physical dynamics rather than learned HMM parameters.
+
+**Assumption checks.** After excluding the censored runs, the Breusch–Pagan test does not reject homoscedasticity ($p = 1.00$ and $0.48$ respectively) and Ramsey RESET does not reject linearity under $p=0.08$ ($p = 0.36$), with only a marginal rejection under $p=0.04$ ($p = 0.033$, driven by a floor effect at small $D_{\text{disr}}$ where MN backlog barely crosses the 50-unit Recovery-state threshold). Residuals fail Shapiro–Wilk normality due to the same floor cluster, which affects inference on the slope's confidence interval but not the OLS slope estimate itself. The full diagnostic panels are archived at `{p08,p04}/results/regression_diagnostics.png`.
+
 ---
 
 ## 5. Training: Supervised Maximum Likelihood Estimation
@@ -403,13 +426,13 @@ The most striking change is the near-tripling of lead-time-adjusted Disruption r
 **Figures for the $p = 0.04$ regime** — regenerated via the same `visualize.py` pipeline and archived under `hmm_project/p04/results/` — are shown below.
 
 ![Trained Matrices ($p = 0.04$)](p04/results/trained_matrices.png)
-*Figure 7: Trained HMM parameters under $p = 0.04$. Left: Transition matrix $A$ with the Disruption self-loop now at 0.961 ($\approx 1 - 0.04$), cleanly recovering the new Geometric parameter. Right: Emission matrix $B$ — sharper state–observation separation than the baseline (Disruption → obs=3 at 0.674 vs. 0.445; Recovery → obs=5 at 0.726 vs. 0.514), as longer episodes spend more periods in the fully-propagated DR-visible regime.*
+*Figure 10: Trained HMM parameters under $p = 0.04$. Left: Transition matrix $A$ with the Disruption self-loop now at 0.961 ($\approx 1 - 0.04$), cleanly recovering the new Geometric parameter. Right: Emission matrix $B$ — sharper state–observation separation than the baseline (Disruption → obs=3 at 0.674 vs. 0.445; Recovery → obs=5 at 0.726 vs. 0.514), as longer episodes spend more periods in the fully-propagated DR-visible regime.*
 
 ![Hero Figure ($p = 0.04$)](p04/results/hero_figure.png)
-*Figure 8: HMM disruption detection on a single $p = 0.04$ test run. Compared to Figure 4, the disruption window is markedly longer (tracks with expected duration $1/p = 25$ weeks), and the Forward filter holds $P(\text{Disruption}) \approx 1$ for a correspondingly longer stretch once the signal propagates.*
+*Figure 11: HMM disruption detection on a single $p = 0.04$ test run. Compared to Figure 4, the disruption window is markedly longer (tracks with expected duration $1/p = 25$ weeks), and the Forward filter holds $P(\text{Disruption}) \approx 1$ for a correspondingly longer stretch once the signal propagates.*
 
 ![Confusion Matrix ($p = 0.04$)](p04/results/confusion_matrix.png)
-*Figure 9: Viterbi classification confusion matrix under $p = 0.04$. The diagonal is substantially stronger than Figure 6 — Disruption recall rises from 23.5% (baseline) to 63.5% even before lead-time adjustment, and to 76.6% after.*
+*Figure 12: Viterbi classification confusion matrix under $p = 0.04$. The diagonal is substantially stronger than Figure 6 — Disruption recall rises from 23.5% (baseline) to 63.5% even before lead-time adjustment, and to 76.6% after.*
 
 **Takeaway.** The Geometric encoding is not fragile to the choice of $p$. The supervised-MLE training pipeline recovers the true Geometric rate across at least two distinct parameterizations, and detection quality scales predictably with disruption duration while the physical lag stays invariant.
 

@@ -344,3 +344,89 @@ The $p = 0.04$ regime gives a **cleaner, more compelling story** than the baseli
 93.7% lead-time-adjusted accuracy and 100% Disruption precision vs. 85.2% / 98.4%.
 These results now live in `report.md` Section 7.4 (*Robustness Check: Halved
 Disruption Probability*) alongside the original $p = 0.08$ writeup.
+
+---
+
+## 5. Step 3: Recovery vs. Disruption Duration Scatter (Deterministic Clearing Rate) — COMPLETED
+
+### Goal
+
+Build a scatter plot of Recovery Duration vs. Disruption Duration for all 100 runs
+with a linear trendline and a theoretical reference slope, then embed it in a new
+subsection of the report (Section 4.4: *Deterministic Recovery Clearing Rate*).
+
+### Code additions
+
+- New functions in `visualize.py`:
+  - `plot_recovery_vs_disruption(processed_dir, output_path, ...)` — single-regime
+    scatter with empirical fit (OLS) and theoretical slope reference.
+  - `plot_recovery_vs_disruption_combined(regime_configs, output_path, ...)` —
+    overlays multiple regimes on one set of axes.
+  - Helpers `_load_all_state_sequences`, `_durations_per_run`, `_fit_line`,
+    `_is_truncated` for reuse.
+  - Call added to `generate_all_plots()` so future pipeline runs produce
+    `results/recovery_vs_disruption.png` by default.
+- New standalone module `regression_diagnostics.py` that runs the full OLS
+  assumption battery (Breusch–Pagan, Shapiro–Wilk, Durbin–Watson, Ramsey RESET)
+  on each regime's filtered data and saves a 4-panel diagnostic figure per regime
+  (residuals-vs-fitted, Normal Q-Q, Scale-Location, Residuals-vs-Leverage with
+  Cook's distance contours). Summary dumped to
+  `results/regression_diagnostics_summary.json`.
+
+### Outputs
+
+- `hmm_project/p08/results/recovery_vs_disruption.png`
+- `hmm_project/p04/results/recovery_vs_disruption.png`
+- `hmm_project/results/recovery_vs_disruption_combined.png`
+- `hmm_project/p08/results/regression_diagnostics.png`
+- `hmm_project/p04/results/regression_diagnostics.png`
+- `hmm_project/results/regression_diagnostics_summary.json`
+
+### Key findings
+
+**A small number of runs (3 under $p=0.08$, 5 under $p=0.04$) had disruptions
+long enough to be right-censored** by `SIM_PERIODS` — the simulation ended while
+the factory was still in Disruption or Recovery, giving an observed Recovery
+Duration that is a strict lower bound on the true value (typically 0). Criterion
+for flagging: final state ≠ Steady. These runs are excluded from the fit
+because they systematically bias the slope downward.
+
+**After filtering, the linear relationship is clearly real:**
+
+| Metric | $p = 0.08$ | $p = 0.04$ |
+|---|---|---|
+| n (after filter) | 97 / 100 | 95 / 100 |
+| Slope | 0.582 | 0.535 |
+| Intercept | −0.11 | +0.44 |
+| $R^2$ | 0.811 | 0.939 |
+| Breusch–Pagan (homoscedasticity) | $p = 1.00$ ✓ | $p = 0.48$ ✓ |
+| Ramsey RESET (linearity) | $p = 0.36$ ✓ | $p = 0.033$ ⚠️ (marginal) |
+| Cook's D (max) | 0.076 ✓ | 0.137 ✓ |
+| Shapiro–Wilk (residual normality) | $p < 10^{-3}$ ⚠️ | $p < 10^{-3}$ ⚠️ |
+
+Normality rejection is driven by a floor cluster at small $D_{\text{disr}}$ where
+the MN backlog barely crosses the 50-unit Recovery-state threshold and pins
+$D_{\text{rec}}$ at ~0 or 5. This affects CI inference on the slope but not the
+OLS point estimate itself.
+
+**The empirical slope (~0.55) differs from my naive MN-only theoretical
+prediction (0.267).** The naive calculation — $(200 - 40)/(800 - 200) = 160/600$
+— treats the MN in isolation. In reality the clearing rate is set by the
+coupled MN/DR system: once the DR's 500-unit safety stock is depleted within
+~3 weeks of disruption onset, its base-stock policy orders up to 500 units/wk
+from the MN, not just 200. This amplifies backlog accumulation beyond 160/wk
+during disruption and keeps DR demand elevated during recovery (so the MN
+clears at less than 600/wk). An extreme coupled-system upper bound assuming
+sustained 500-unit/wk DR ordering throughout would give
+$(500 - 40) / (800 - 500) \approx 1.53$; the observed 0.55 lies in between.
+
+**Crucially, the two regimes agree.** Slopes of 0.582 ($p=0.08$) and 0.535
+($p=0.04$) differ by under 10%, consistent with sampling noise on ~95 runs.
+This is the key finding: the clearing rate is a function of physical
+parameters (capacities, safety stocks, lead times) and does **not** depend on
+$p$. This is the same pattern as the $\hat{a}_{11}$ cross-regime recovery —
+structural validation at the level of physical dynamics.
+
+The scatter plots and these findings now live in `report.md` Section 4.4
+(*Deterministic Recovery Clearing Rate*). Figure numbering in the existing
+Section 7.4 was bumped from 7–9 to 10–12 to accommodate the new Figures 7–9.

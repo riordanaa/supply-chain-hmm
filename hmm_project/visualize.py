@@ -406,6 +406,190 @@ def find_best_example_run(test_metadata, min_duration=12):
     return best_idx
 
 
+def _load_all_state_sequences(processed_dir):
+    """Load the 100 run state sequences (70 train + 30 test) from a processed/ dir."""
+    train = np.load(os.path.join(processed_dir, "train.npz"), allow_pickle=True)
+    test = np.load(os.path.join(processed_dir, "test.npz"), allow_pickle=True)
+    return list(train["states"]) + list(test["states"])
+
+
+def _durations_per_run(all_states):
+    """Count (disruption, recovery) periods per run from state sequences."""
+    d_dur = np.array([int((s == DISRUPTION).sum()) for s in all_states])
+    r_dur = np.array([int((s == RECOVERY).sum()) for s in all_states])
+    return d_dur, r_dur
+
+
+def _fit_line(x, y):
+    """Return (slope, intercept, R^2) for a linear fit."""
+    slope, intercept = np.polyfit(x, y, 1)
+    y_pred = slope * x + intercept
+    ss_res = float(np.sum((y - y_pred) ** 2))
+    ss_tot = float(np.sum((y - np.mean(y)) ** 2))
+    r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    return slope, intercept, r_squared
+
+
+def _is_truncated(states):
+    """A run is truncated if its final state is not Steady — i.e. the
+    simulation window ended mid-Disruption or mid-Recovery, so the run's
+    Recovery duration is right-censored."""
+    return int(states[-1]) != STEADY
+
+
+def plot_recovery_vs_disruption(processed_dir, output_path,
+                                 theoretical_slope=160.0 / 600.0,
+                                 title_suffix="",
+                                 filter_truncated=True,
+                                 show_excluded=False):
+    """
+    Scatter of Recovery Duration (y) vs Disruption Duration (x).
+
+    By default (filter_truncated=True) excludes runs where the simulation
+    ended mid-Disruption or mid-Recovery (right-censored recovery). These
+    runs bias the fit because their observed Recovery duration is ≤ the
+    true Recovery duration. Set show_excluded=True to overlay them as grey
+    'x' markers for transparency; default is a clean plot of only the
+    fitted runs.
+
+    Overlays the empirical linear fit and the theoretical clearing-rate
+    slope = (demand - disrupted_production) / (production_max - demand)
+    = 160/600 ≈ 0.267.
+    """
+    all_states = _load_all_state_sequences(processed_dir)
+    d_all, r_all = _durations_per_run(all_states)
+    truncated_mask = np.array([_is_truncated(s) for s in all_states])
+
+    if filter_truncated:
+        keep = ~truncated_mask
+    else:
+        keep = np.ones(len(all_states), dtype=bool)
+
+    d_fit, r_fit = d_all[keep], r_all[keep]
+    slope, intercept, r_squared = _fit_line(d_fit, r_fit)
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    # Surviving (fitted) runs
+    ax.scatter(d_fit, r_fit, color='#3498db', edgecolor='black',
+               alpha=0.7, s=60, zorder=3,
+               label=f'{int(keep.sum())} complete runs')
+
+    # Excluded truncated runs (only shown when explicitly requested)
+    if filter_truncated and show_excluded and truncated_mask.any():
+        ax.scatter(d_all[truncated_mask], r_all[truncated_mask],
+                   color='#95a5a6', marker='x',
+                   s=80, linewidth=1.5, zorder=3,
+                   label=f'{int(truncated_mask.sum())} truncated runs (excluded)')
+
+    x_max = float(max(d_all)) * 1.05 if len(d_all) > 0 else 1.0
+    x_range = np.array([0.0, x_max])
+
+    fit_sign = "+" if intercept >= 0 else "-"
+    ax.plot(x_range, slope * x_range + intercept,
+            color='#c0392b', linewidth=2.0, zorder=2,
+            label=f'Empirical fit: y = {slope:.3f}·x {fit_sign} {abs(intercept):.2f}  '
+                  f'(R² = {r_squared:.3f})')
+
+    ax.plot(x_range, theoretical_slope * x_range,
+            color='#27ae60', linewidth=2.0, linestyle='--', zorder=1,
+            label=f'Theoretical slope: {theoretical_slope:.3f}  '
+                  f'(= 160/600 units·wk⁻¹)')
+
+    ax.set_xlabel("Disruption Duration (weeks)", fontsize=12, fontweight='bold')
+    ax.set_ylabel("Recovery Duration (weeks)", fontsize=12, fontweight='bold')
+    ax.set_title(f"Recovery Duration vs. Disruption Duration{title_suffix}",
+                 fontsize=13, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='upper left', fontsize=10)
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {output_path}")
+
+    return {
+        "slope": float(slope),
+        "intercept": float(intercept),
+        "r_squared": float(r_squared),
+        "n_fitted": int(keep.sum()),
+        "n_truncated_excluded": int(truncated_mask.sum()) if filter_truncated else 0,
+        "n_total": int(len(all_states)),
+    }
+
+
+def plot_recovery_vs_disruption_combined(regime_configs, output_path,
+                                          theoretical_slope=160.0 / 600.0,
+                                          filter_truncated=True):
+    """
+    Overlay scatter for multiple regimes on one set of axes.
+
+    regime_configs: list of {'processed_dir': str, 'label': str, 'color': str}.
+    If filter_truncated=True (default), excludes runs whose final state is
+    not Steady (right-censored recovery).
+    """
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    all_d = []
+    summaries = []
+    for cfg in regime_configs:
+        all_states = _load_all_state_sequences(cfg["processed_dir"])
+        d_dur, r_dur = _durations_per_run(all_states)
+        truncated_mask = np.array([_is_truncated(s) for s in all_states])
+        keep = ~truncated_mask if filter_truncated else np.ones_like(truncated_mask)
+
+        d_fit, r_fit = d_dur[keep], r_dur[keep]
+        slope, intercept, r_squared = _fit_line(d_fit, r_fit)
+
+        fit_sign = "+" if intercept >= 0 else "-"
+        ax.scatter(d_fit, r_fit, color=cfg["color"], edgecolor='black',
+                   alpha=0.65, s=55, zorder=3,
+                   label=f"{cfg['label']}  (n={int(keep.sum())} of {len(d_dur)}):  "
+                         f"y = {slope:.3f}·x {fit_sign} {abs(intercept):.2f}  "
+                         f"(R² = {r_squared:.3f})")
+
+        if filter_truncated and truncated_mask.any():
+            ax.scatter(d_dur[truncated_mask], r_dur[truncated_mask],
+                       color=cfg["color"], edgecolor='black', marker='x',
+                       s=70, linewidth=1.3, zorder=3, alpha=0.55)
+
+        x_max_r = float(max(d_dur)) * 1.05 if len(d_dur) > 0 else 1.0
+        x_range = np.array([0.0, x_max_r])
+        ax.plot(x_range, slope * x_range + intercept,
+                color=cfg["color"], linewidth=1.8, zorder=2)
+
+        all_d.extend(d_dur.tolist())
+        summaries.append({"label": cfg["label"], "slope": float(slope),
+                          "intercept": float(intercept), "r_squared": float(r_squared),
+                          "n_fitted": int(keep.sum()),
+                          "n_truncated_excluded": int(truncated_mask.sum()) if filter_truncated else 0,
+                          "n_total": int(len(d_dur))})
+
+    x_max = float(max(all_d)) * 1.05 if all_d else 1.0
+    ax.plot([0.0, x_max], [0.0, theoretical_slope * x_max],
+            color='#333333', linewidth=2.0, linestyle='--', zorder=1,
+            label=f'Theoretical slope: {theoretical_slope:.3f}  '
+                  f'(= 160/600 units·wk⁻¹)')
+
+    ax.set_xlabel("Disruption Duration (weeks)", fontsize=12, fontweight='bold')
+    ax.set_ylabel("Recovery Duration (weeks)", fontsize=12, fontweight='bold')
+    ax.set_title("Recovery vs. Disruption Duration — Both Regimes",
+                 fontsize=13, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='upper left', fontsize=9)
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {output_path}")
+
+    return summaries
+
+
 def generate_all_plots(results):
     """Generate all visualization plots."""
     os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -442,6 +626,13 @@ def generate_all_plots(results):
 
     plot_observation_frequency_heatmap(
         results["test_states"], results["test_obs"]
+    )
+
+    # Recovery-vs-Disruption scatter for the current regime
+    processed_dir = os.path.join(os.path.dirname(__file__), "data", "processed")
+    plot_recovery_vs_disruption(
+        processed_dir,
+        os.path.join(RESULTS_DIR, "recovery_vs_disruption.png")
     )
 
     print(f"\nAll plots saved to: {RESULTS_DIR}")
