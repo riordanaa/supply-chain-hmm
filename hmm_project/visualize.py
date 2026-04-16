@@ -128,28 +128,29 @@ def plot_forward_probabilities(all_filtered, test_states, test_metadata, run_idx
 
 
 def plot_confusion_matrix(cm):
-    """Confusion matrix heatmap."""
-    fig, ax = plt.subplots(figsize=(7, 6))
+    """Confusion matrix heatmap. Blues colormap to match the 3x3 Transition
+    Matrix A styling in trained_matrices.png."""
+    fig, ax = plt.subplots(figsize=(5.5, 4.5))
 
     # Normalize for color (but show raw counts)
     cm_norm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
 
-    im = ax.imshow(cm_norm, cmap='YlOrRd', vmin=0, vmax=1)
+    im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
     for i in range(3):
         for j in range(3):
             pct = 100 * cm_norm[i, j]
             text_color = 'white' if cm_norm[i, j] > 0.5 else 'black'
             ax.text(j, i, f"{cm[i, j]}\n({pct:.1f}%)",
-                    ha='center', va='center', fontsize=12, color=text_color,
+                    ha='center', va='center', fontsize=10, color=text_color,
                     fontweight='bold')
 
     ax.set_xticks(range(3))
     ax.set_yticks(range(3))
-    ax.set_xticklabels(STATE_NAMES, fontsize=11)
-    ax.set_yticklabels(STATE_NAMES, fontsize=11)
-    ax.set_xlabel("Predicted State", fontsize=12)
-    ax.set_ylabel("True State", fontsize=12)
-    ax.set_title("Viterbi Classification — Confusion Matrix", fontsize=13, fontweight='bold')
+    ax.set_xticklabels(STATE_NAMES, fontsize=9)
+    ax.set_yticklabels(STATE_NAMES, fontsize=9)
+    ax.set_xlabel("Predicted State", fontsize=10)
+    ax.set_ylabel("True State", fontsize=10)
+    ax.set_title("Viterbi Classification — Confusion Matrix", fontsize=11, fontweight='bold')
     plt.colorbar(im, ax=ax, label="Row-normalized proportion")
 
     plt.tight_layout()
