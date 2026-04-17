@@ -127,7 +127,12 @@ def diagnostic_plot(fit, title, output_path):
     n = fit["n"]
     p = fit["p"]
 
+    BG_COLOR = '#F5F8FB'  # soft off-white for figure + axes backgrounds
+
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
+    fig.patch.set_facecolor(BG_COLOR)
+    for ax in axes.flat:
+        ax.set_facecolor(BG_COLOR)
     fig.suptitle(title, fontsize=14, fontweight='bold', y=0.995)
 
     # --- 1. Residuals vs Fitted ---
@@ -194,7 +199,8 @@ def diagnostic_plot(fit, title, output_path):
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout(rect=[0, 0, 1, 0.975])
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                facecolor=fig.get_facecolor())
     plt.close()
     print(f"  Saved: {output_path}")
 
