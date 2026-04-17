@@ -430,3 +430,111 @@ structural validation at the level of physical dynamics.
 The scatter plots and these findings now live in `report.md` Section 4.4
 (*Deterministic Recovery Clearing Rate*). Figure numbering in the existing
 Section 7.4 was bumped from 7–9 to 10–12 to accommodate the new Figures 7–9.
+
+### Presentation advice note
+
+During review the user asked whether presenting the naive-then-coupled arc
+(start with slope $= 0.267$, observe empirical $\approx 0.55$, then explain
+via DR base-stock reordering dynamics) was overcomplicating things versus
+just deriving the $\approx 0.5$ slope up front. Written answer captured for
+reference:
+
+- **Keep the arc in the written report** — the journey is pedagogically
+  defensible and the coupled-system derivation is not a one-line result.
+- **For the slide deck, lead with regime-invariance** — the headline is
+  "two regimes produce the same slope (0.58 vs. 0.54)," not "the slope
+  value is X." Whether the slope equals 0.267 or 0.55 is secondary; the
+  fact that **it is** $p$-invariant is what the project demonstrates.
+- **Coupled explanation belongs as a footnote / backup slide**, expanded
+  only if a sharp audience member asks why empirical differs from naive.
+
+---
+
+## 6. Cosmetic Cleanup: Viterbi Confusion Matrix Restyling — COMPLETED
+
+Pure cosmetic change, no data or model touched:
+
+- `plot_confusion_matrix()` in `visualize.py`: `cmap='YlOrRd'` → `cmap='Blues'`
+  (matches the 3×3 Transition Matrix $A$ styling in `trained_matrices.png`).
+- `figsize=(7, 6)` → `figsize=(5.5, 4.5)` (~30% smaller); font sizes trimmed
+  slightly for the smaller frame.
+
+All three archived PNGs regenerated from the saved
+`evaluation_results.npz` arrays (no re-evaluation). Verified every cell
+value matches `report.md` Sections 6.4 and 7.4 to the integer:
+
+- $p = 0.08$ baseline: diag 1630 / 84 / 206, row totals 1734 / 357 / 309,
+  overall accuracy 80.0%.
+- $p = 0.04$ robustness: diag 3216 / 464 / 227, row totals 3326 / 731 / 443,
+  overall accuracy 86.8%.
+
+Output files overwritten in place (so `report.md` figure paths keep resolving
+to the restyled PNGs):
+- `hmm_project/p08/results/confusion_matrix.png`
+- `hmm_project/p04/results/confusion_matrix.png`
+- `hmm_project/results/confusion_matrix.png`
+
+---
+
+## 7. Final Project Status
+
+The course project is essentially feature-complete. Below is a single place
+to see what's done versus what's intentionally deferred.
+
+### Completed
+
+| Step | Status | Home in `report.md` | Archive |
+|---|---|---|---|
+| Step 0 — baseline HMM pipeline (MN→DR→HC, $N=3$, $M=6$) | ✓ | Sections 1–7.3 | `p08/` |
+| Step 1 — MN safety-stock initialization | **reverted** | not in report | — |
+| Step 2 — halved $p$ robustness check ($p=0.04$, `SIM_PERIODS=150`) | ✓ | Section 7.4 | `p04/` |
+| Step 3 — recovery-vs-disruption scatter (deterministic clearing rate) | ✓ | Section 4.4 | `{p08,p04}/results/recovery_vs_disruption.png`, `results/recovery_vs_disruption_combined.png` |
+| Regression-assumption battery on the scatter | ✓ | summarized in Section 4.4; panels archived | `{p08,p04}/results/regression_diagnostics.png`, `results/regression_diagnostics_summary.json` |
+| Confusion-matrix restyling (Blues, compact) | ✓ | Figures 6 and 12 | archived |
+| Code committed + pushed to GitHub | ✓ | `https://github.com/riordanaa/supply-chain-hmm` | master branch |
+
+Final commit chain on `master`:
+- `b6f7d99` — original baseline snapshot (pre-project work)
+- `f64fb8c` — Step 2: $p=0.04$ robustness + `p08/` & `p04/` consolidation
+- `6092df6` — Step 3: scatter + deterministic clearing rate Section 4.4
+- `5be1e09` — Viterbi confusion matrix Blues restyle
+
+### Intentionally out of scope (documented so future-you doesn't
+                                   wonder why they're missing)
+
+| Not done | Reason |
+|---|---|
+| 2×2×2 = $M=8$ observation space with MN Fill Rate as a leading indicator | Out of scope per the user's Step 3 triage — would be valuable for beating the 10.2-week detection lag but is its own project. |
+| Renewal-theory / expected-remaining-duration treatment | Substituted with the existing Geometric self-transition argument ($\text{E}[\text{remaining}] = 1/(1 - \hat{a}_{11})$); see `report.md` Section 2.5. |
+| Optimal threshold policy / POMDP / SARSA on HMM output | Out of scope; mentioned only qualitatively in the Conclusion / Discussion. |
+| Second distributor (DR2) | Out of scope — would break the current 1-MN/1-DR/1-HC wrapper and require changes to the underlying simulator. |
+
+### Useful commands for future-you
+
+Reproduce either regime from scratch:
+```bash
+cp hmm_project/p08/config_snapshot.py hmm_project/config.py   # or p04/
+python hmm_project/run_pipeline.py
+```
+
+Regenerate only the scatter + combined:
+```bash
+cd hmm_project
+python -c "from visualize import plot_recovery_vs_disruption, plot_recovery_vs_disruption_combined; \
+  plot_recovery_vs_disruption('p08/data/processed', 'p08/results/recovery_vs_disruption.png', title_suffix=' (p = 0.08)'); \
+  plot_recovery_vs_disruption('p04/data/processed', 'p04/results/recovery_vs_disruption.png', title_suffix=' (p = 0.04)'); \
+  plot_recovery_vs_disruption_combined([ \
+    {'processed_dir':'p08/data/processed','label':'p = 0.08','color':'#3498db'}, \
+    {'processed_dir':'p04/data/processed','label':'p = 0.04','color':'#e67e22'}], \
+    'results/recovery_vs_disruption_combined.png')"
+```
+
+Rerun the regression-assumption diagnostics:
+```bash
+cd hmm_project && python regression_diagnostics.py
+```
+
+Convert the report to PDF / HTML for submission:
+```bash
+cd hmm_project && python generate_pdf.py   # or generate_html.py
+```

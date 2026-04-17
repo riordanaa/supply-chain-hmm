@@ -313,6 +313,10 @@ def run_test():
               " | ".join(f"{STATE_NAMES[j]}: {probs[j]:.4f}" for j in range(3)))
 
     # --- PLOTS ---
+    # Canonical state palette matching visualize.STATE_COLORS so this figure
+    # looks consistent with the rest of the report.
+    STATE_PALETTE = {STEADY: '#2ecc71', DISRUPTION: '#e74c3c', RECOVERY: '#f39c12'}
+
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle("Memoryless Property Analysis\n"
                  f"Fixed Disruption (t={DISRUPTION_START}-{DISRUPTION_END}), "
@@ -326,7 +330,8 @@ def run_test():
         if len(dwells) > 5:
             max_dwell = max(dwells)
             bins = range(1, max_dwell + 2)
-            ax.hist(dwells, bins=bins, density=True, alpha=0.7, color=['gold', 'red'][idx],
+            ax.hist(dwells, bins=bins, density=True, alpha=0.7,
+                    color=STATE_PALETTE[s],
                     edgecolor='black', label='Observed')
 
             # Geometric fit overlay
@@ -351,16 +356,15 @@ def run_test():
     ax = axes[1, 0]
     example_run = all_state_sequences[0]
     t_range = range(len(example_run))
-    colors = {STEADY: 'green', DISRUPTION: 'red', RECOVERY: 'gold'}
     for t in t_range:
-        ax.axvspan(t - 0.5, t + 0.5, alpha=0.4, color=colors[example_run[t]])
+        ax.axvspan(t - 0.5, t + 0.5, alpha=0.6, color=STATE_PALETTE[example_run[t]])
     ax.axvline(x=DISRUPTION_START, color='black', linestyle='--', linewidth=1.5, label='Disruption start')
     ax.axvline(x=DISRUPTION_END, color='black', linestyle=':', linewidth=1.5, label='Disruption end')
     # Add legend patches
     from matplotlib.patches import Patch
-    legend_patches = [Patch(facecolor='green', alpha=0.4, label='Steady'),
-                      Patch(facecolor='red', alpha=0.4, label='Disruption'),
-                      Patch(facecolor='gold', alpha=0.4, label='Recovery')]
+    legend_patches = [Patch(facecolor=STATE_PALETTE[STEADY], alpha=0.6, label='Steady'),
+                      Patch(facecolor=STATE_PALETTE[DISRUPTION], alpha=0.6, label='Disruption'),
+                      Patch(facecolor=STATE_PALETTE[RECOVERY], alpha=0.6, label='Recovery')]
     ax.legend(handles=legend_patches + ax.get_legend_handles_labels()[0], loc='upper right', fontsize=8)
     ax.set_xlabel("Period (t)")
     ax.set_ylabel("State")
@@ -378,7 +382,7 @@ def run_test():
         if total_from > 0:
             trans_matrix[i, :] = [r / total_from for r in row]
 
-    im = ax.imshow(trans_matrix, cmap='YlOrRd', vmin=0, vmax=1)
+    im = ax.imshow(trans_matrix, cmap='Blues', vmin=0, vmax=1)
     for i in range(3):
         for j in range(3):
             ax.text(j, i, f"{trans_matrix[i, j]:.4f}",
