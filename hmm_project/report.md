@@ -456,5 +456,5 @@ The HMM transforms the DR's binary uncertainty ("is my supplier disrupted?") int
 ## References
 
 1. Mohaddesi, O., Griffin, J., Ergun, O., Kaeli, D., Marsella, S., & Harteveld, C. (2022). To Trust or to Stockpile: Modeling Human-Simulation Interaction in Supply Chain Shortages. *CHI '22: Proceedings of the CHI Conference on Human Factors in Computing Systems*.
-2. Raziei, Z. (2024). *Pharmaceutical Supply Chain Simulation* [Doctoral dissertation].
+2. Raziei, Z. (2024). *Artificial Intelligence Solutions for Decision Making with Applications in Inventory Control and Predictive Analytics* [Doctoral dissertation, Northeastern University]. Department of Mechanical and Industrial Engineering, Boston, MA.
 3. Rabiner, L. R. (1989). A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition. *Proceedings of the IEEE*, 77(2), 257-286.

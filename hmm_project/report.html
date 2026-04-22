@@ -261,7 +261,7 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 </tbody>
 </table>
 <p><strong>Test 2: Markov Order.</strong> We compared first-order vs. second-order Markov models using a likelihood ratio test. The second-order model was significantly better ($\chi^2 = 175.7$, $df = 12$, $p < 0.001$), confirming that the natural system has memory beyond one time step.</p>
-<p><img alt="Memoryless Property Analysis" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/memoryless_property_test.png" /><br />
+<p><img alt="Memoryless Property Analysis" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/memoryless_property_test.png" /><br />
 <em>Figure 1: Memoryless property analysis. Top: Recovery and Disruption dwell time histograms with Geometric fit overlay (both rejected). Bottom-left: Example state sequence. Bottom-right: Empirical first-order transition matrix.</em></p>
 <h3>3.3 Justification for Geometric Encoding</h3>
 <p>Both tests confirm that the <strong>natural</strong> supply chain violates the memoryless property, primarily due to:<br />
@@ -331,8 +331,21 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 <h3>4.3 Data Generation</h3>
 <p>We generated 100 simulation runs, each spanning 80 weeks. The disruption onset is fixed at $t = 15$; the duration follows $\text{Geom}(0.08)$. Across all runs, the mean disruption duration was 12.0 weeks (median: 9.0, range: 1–57). One run never recovered within the 80-week window.</p>
 <p>The data was split into 70 training runs and 30 testing runs. A 10-period warmup truncation was applied to training sequences to remove the transient startup artifact (MN starts with zero inventory, creating an artificial backlog), ensuring the initial state distribution $\pi$ correctly reflects a Steady State baseline.</p>
-<p><img alt="Raw DR Signals" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/raw_signals.png" /><br />
+<p><img alt="Raw DR Signals" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/raw_signals.png" /><br />
 <em>Figure 2: Raw signals for a single simulation run. Top: DR shipment received (drops to ~0 during disruption, surges during recovery). Middle: DR backlog (rises sharply with lag). Bottom: MN production capacity (the hidden variable the DR cannot observe). Background shading indicates ground-truth state.</em></p>
+<h3>4.4 Deterministic Recovery Clearing Rate</h3>
+<p>Each run contains exactly one disruption episode followed by a Recovery phase during which the MN clears accumulated backlog. A mass balance at the manufacturer implies that recovery duration should scale linearly with disruption duration — and importantly, <strong>the slope should not depend on</strong> $p$ (which controls only the <em>distribution</em> of disruption durations, not the physical clearing dynamics of any individual episode).</p>
+<p><strong>Theoretical slope.</strong> During disruption, MN production drops to 40 units/week while demand is 200, so MN backlog accumulates at $200 - 40 = 160$ units/week. During recovery, MN restores 800/week production, so backlog clears at $800 - 200 = 600$ units/week. The naive MN-only mass-balance prediction is therefore $\text{slope}_{\text{naive}} = 160/600 \approx 0.267$, shown as the dashed green reference line in the scatter plots below.</p>
+<p>A small number of runs (3 under $p=0.08$, 5 under $p=0.04$) have disruptions long enough that the simulation window ends mid-episode, right-censoring the observed recovery duration below its true value. These runs are excluded from the analysis.</p>
+<p><img alt="Combined scatter" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/recovery_vs_disruption_combined.png" /><br />
+<em>Figure 7: Recovery vs. Disruption duration across both regimes. Both regimes fall on essentially the same line, confirming the slope is $p$-invariant. The dashed black line is the naive MN-only prediction (slope 0.267).</em></p>
+<p><img alt="p=0.08 scatter" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/recovery_vs_disruption.png" /><br />
+<em>Figure 8: $p = 0.08$ baseline. Fitted slope 0.582, intercept $-0.11$, $R^2 = 0.811$ (n = 97 complete runs).</em></p>
+<p><img alt="p=0.04 scatter" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p04/results/recovery_vs_disruption.png" /><br />
+<em>Figure 9: $p = 0.04$ robustness check. Fitted slope 0.535, intercept $+0.44$, $R^2 = 0.939$ (n = 95 complete runs).</em></p>
+<p><strong>Why the empirical slope (≈ 0.55) differs from the naive 0.267.</strong> The naive calculation treats the MN in isolation. In reality the clearing rate is set by the coupled MN/DR system. Once the DR's 500-unit safety stock is depleted (within ~3 weeks of disruption onset), its base-stock policy orders up to 500 units/week from the MN — not just 200 — to restore target inventory. MN backlog thus accumulates faster than $200 - 40$ once the DR runs empty. During recovery, DR orders remain elevated because DR inventory has not yet normalized, so the MN must allocate most of its restored 800/wk production to meeting ongoing demand, leaving less than 600/wk to reduce its own backlog. An extreme coupled-system upper bound assuming sustained 500-unit/wk ordering throughout would give $(500-40)/(800-500) \approx 1.53$; the observed 0.55 lies between the naive and this upper bound.</p>
+<p><strong>Why the two regimes agree.</strong> The slopes 0.582 and 0.535 differ by under 10% — consistent with sampling noise on ~95 runs. The clearing rate depends on <strong>physical</strong> parameters (capacity, demand, safety stocks, lead times), not on $p$. The two regimes producing nearly identical slopes despite a 2× difference in mean disruption duration provides the same kind of structural validation as the $\hat{a}_{11}$ recovery in Section 7.4 — here at the level of physical dynamics rather than learned HMM parameters.</p>
+<p><strong>Assumption checks.</strong> After excluding the censored runs, the Breusch–Pagan test does not reject homoscedasticity ($p = 1.00$ and $0.48$ respectively) and Ramsey RESET does not reject linearity under $p=0.08$ ($p = 0.36$), with only a marginal rejection under $p=0.04$ ($p = 0.033$, driven by a floor effect at small $D_{\text{disr}}$ where MN backlog barely crosses the 50-unit Recovery-state threshold). Residuals fail Shapiro–Wilk normality due to the same floor cluster, which affects inference on the slope's confidence interval but not the OLS slope estimate itself. The full diagnostic panels are archived at <code>{p08,p04}/results/regression_diagnostics.png</code>.</p>
 <hr />
 <h2>5. Training: Supervised Maximum Likelihood Estimation</h2>
 <h3>5.1 Why Supervised MLE</h3>
@@ -353,11 +366,11 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 <p>$$\hat{b}\_{i}(o) = \frac{C\_{B}(i, o) + \alpha}{\sum\_{o'=0}^{M-1} [C\_{B}(i, o') + \alpha]}, \quad \text{where } C\_{B}(i, o) = \sum\_{k=1}^{K} \sum\_{t=1}^{T\_{k}} I(s\_{t}^{(k)} = i,\ o\_{t}^{(k)} = o)$$</p>
 <p>Here alpha = 1 is the Laplace smoothing constant, which prevents zero probabilities (and thus log(0) errors in Forward/Viterbi) for rare state-observation combinations.</p>
 <h3>5.4 Observation Signal-to-Noise Ratio</h3>
-<p><img alt="Observation Frequency Heatmap" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/observation_frequency_heatmap.png" /><br />
+<p><img alt="Observation Frequency Heatmap" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/observation_frequency_heatmap.png" /><br />
 <em>Figure 3a: Observation frequency per state from the test data. Each cell shows the percentage (and count) of periods in that state emitting that observation. The strong diagonal pattern confirms that each state produces a distinct emission signature.</em></p>
 <p>The heatmap reveals clear signal separation: Steady State overwhelmingly emits observation 1 (None-BL, Normal-Ship, 64.6%), Disruption concentrates on observation 3 (High-BL, Zero/Low-Ship, 55.2%), and Recovery is dominated by observation 5 (High-BL, Surge-Ship, 34.8%) alongside observation 3 (42.7%). The overlap between Disruption and Recovery on observation 3 reflects the physical reality that both states involve high backlogs — the distinguishing signal is the shipment level (Zero/Low vs. Surge).</p>
 <h3>5.5 Trained Parameters</h3>
-<p><img alt="Trained Matrices" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/trained_matrices.png" /><br />
+<p><img alt="Trained Matrices" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/trained_matrices.png" /><br />
 <em>Figure 3: Trained HMM parameters. Left: Transition matrix $A$ showing high self-transition probabilities (0.978 for Steady, 0.921 for Disruption, 0.870 for Recovery). Right: Emission matrix $B$ showing clear state-observation separation.</em></p>
 <p><strong>Key observations:</strong><br />
 - The learned Disruption self-transition probability is 0.9209, which closely matches $1 - p = 0.92$, confirming that the trained HMM recovers the Geometric parameter $p = 0.08$. This validates both the training procedure and the Geometric encoding.<br />
@@ -396,14 +409,14 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 <p>Working in log-space eliminates underflow issues entirely.</p>
 <p>We derived these algorithms mathematically for completeness; for execution, we leveraged <code>hmmlearn</code>'s highly-optimized C implementations with our frozen MLE parameters injected via the <code>CategoricalHMM</code> interface.</p>
 <h3>6.3 Forward Algorithm Results</h3>
-<p><img alt="Hero Figure" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/hero_figure.png" /><br />
+<p><img alt="Hero Figure" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/hero_figure.png" /><br />
 <em>Figure 4: HMM disruption detection for a single test run. Top: ground-truth state sequence. Middle: Viterbi-decoded state sequence. Bottom: Forward-filtered probabilities P(State | observations) over time. Vertical lines mark the actual disruption onset and MN recovery.</em></p>
-<p><img alt="Detection Lag Histogram" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/detection_lag_histogram.png" /><br />
+<p><img alt="Detection Lag Histogram" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/detection_lag_histogram.png" /><br />
 <em>Figure 5: Distribution of detection lag across 30 test runs. Left: Disruption detection lag (Forward P(Disruption) &gt; 0.5), mean = 10.2 weeks. Right: Recovery detection lag, mean = 4.0 weeks.</em></p>
 <p><strong>Disruption detection lag:</strong> The Forward algorithm detects disruption (pushes $P(\text{Disruption}) > 0.5$) with a mean lag of <strong>10.2 weeks</strong> after the physical shock occurs. This lag was observed in 20 out of 30 test runs; the remaining 10 runs had disruptions too short (1-5 weeks) for the signal to propagate to the DR before recovery. At higher confidence thresholds: $P > 0.7$ yields a mean lag of 10.2 weeks (20/30 runs); $P > 0.9$ yields 10.1 weeks (18/30 runs) — indicating rapid convergence once the signal arrives.</p>
 <p><strong>Recovery detection lag:</strong> Recovery is detected with a mean lag of <strong>4.0 weeks</strong>, significantly faster than disruption detection. This asymmetry occurs because the recovery signal (a sudden surge in shipments after a period of near-zero deliveries) is more distinctive than the disruption signal (a gradual reduction as MN inventory buffers deplete).</p>
 <h3>6.4 Viterbi Algorithm Results</h3>
-<p><img alt="Confusion Matrix" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/results/confusion_matrix.png" /><br />
+<p><img alt="Confusion Matrix" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p08/results/confusion_matrix.png" /><br />
 <em>Figure 6: Viterbi classification confusion matrix across all 30 test runs (2,400 total periods). Row-normalized percentages shown in parentheses.</em></p>
 <table>
 <thead>
@@ -522,6 +535,104 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 <p>For disruptions lasting longer than 10 weeks (where the signal fully propagates), the HMM achieves near-perfect detection. The low aggregate recall is driven entirely by the geometric tail of short, unobservable disruptions.</p>
 <h3>7.3 Robustness to Markov Violations</h3>
 <p>As demonstrated in Section 3, the natural supply chain violates the strict memoryless property. Our Geometric encoding enforces the Markov assumption at the Disruption state level, but the Recovery state retains mild memory (backlog clearing is deterministic given the accumulation). Despite this, the HMM performs well — consistent with the extensive literature showing HMM robustness to moderate Markov violations in speech recognition, genomics, and financial time series.</p>
+<h3>7.4 Robustness Check: Halved Disruption Probability ($p = 0.04$)</h3>
+<p>A single successful recovery of the Geometric parameter ($\hat{a}_{11} = 0.921 \approx 1 - 0.08$) could, in principle, be coincidence. To test whether the supervised MLE genuinely recovers the underlying rate — rather than reproducing one fitted number by luck — we repeated the entire pipeline under a different regime: $p = 0.04$ (halved recovery probability, doubling the expected disruption duration to 25 weeks). Because disruptions are now longer, we also extended <code>SIM_PERIODS</code> from 80 to 150 so the simulation window accommodates a full disruption + recovery cycle. All other parameters (network topology, lead times, observation thresholds, 70/30 split, seeds) are identical to the baseline. Configuration snapshots, data, and figures for both regimes are preserved in <code>hmm_project/p08/</code> and <code>hmm_project/p04/</code>.</p>
+<p><strong>The MLE recovers the new rate.</strong> The trained transition matrix under $p = 0.04$ is:</p>
+<p>$$
+\hat{A}_{p=0.04} = \begin{pmatrix}
+0.9887 & 0.0099 & 0.0014 \\
+0.0120 & \mathbf{0.9613} & 0.0267 \\
+0.0738 & 0.0013 & 0.9248
+\end{pmatrix}
+$$</p>
+<p>Side-by-side comparison of the Disruption self-loop:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th style="text-align: center;">$p = 0.08$ (baseline)</th>
+<th style="text-align: center;">$p = 0.04$ (this check)</th>
+<th style="text-align: center;">Expected ($= 1 - p$)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\hat{a}_{11}$</td>
+<td style="text-align: center;">0.9209</td>
+<td style="text-align: center;"><strong>0.9613</strong></td>
+<td style="text-align: center;">0.96</td>
+</tr>
+<tr>
+<td>Total exit rate from Disruption ($\hat{a}_{10} + \hat{a}_{12}$)</td>
+<td style="text-align: center;">0.0791</td>
+<td style="text-align: center;"><strong>0.0387</strong></td>
+<td style="text-align: center;">0.04</td>
+</tr>
+</tbody>
+</table>
+<p>The deviation from the theoretical value is under 0.002 in both regimes. This is a <strong>second, independent validation</strong> of the Geometric-encoding approach: the supervised MLE recovers the correct Geometric parameter regardless of which $p$ we use to generate the data, confirming that the method is identifying the rate — not fitting a single number.</p>
+<p><strong>Detection quality improves on every axis.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: center;">$p = 0.08$</th>
+<th style="text-align: center;">$p = 0.04$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overall Viterbi accuracy</td>
+<td style="text-align: center;">80.0%</td>
+<td style="text-align: center;"><strong>86.8%</strong></td>
+</tr>
+<tr>
+<td>Improvement over majority-class baseline</td>
+<td style="text-align: center;">+7.8 pp</td>
+<td style="text-align: center;"><strong>+12.9 pp</strong></td>
+</tr>
+<tr>
+<td>Lead-time-adjusted accuracy</td>
+<td style="text-align: center;">85.2%</td>
+<td style="text-align: center;"><strong>93.7%</strong></td>
+</tr>
+<tr>
+<td>Lead-time-adjusted Disruption precision</td>
+<td style="text-align: center;">98.4%</td>
+<td style="text-align: center;"><strong>100.0%</strong></td>
+</tr>
+<tr>
+<td>Lead-time-adjusted Disruption recall</td>
+<td style="text-align: center;">33.9%</td>
+<td style="text-align: center;"><strong>76.6%</strong></td>
+</tr>
+<tr>
+<td>Filtered accuracy (excluding micro-disruptions)</td>
+<td style="text-align: center;">76.0%</td>
+<td style="text-align: center;"><strong>85.7%</strong></td>
+</tr>
+<tr>
+<td>Runs with Forward-detected disruption ($P > 0.5$)</td>
+<td style="text-align: center;">20 / 30</td>
+<td style="text-align: center;"><strong>24 / 30</strong></td>
+</tr>
+<tr>
+<td>Micro-disruptions ($\leq 5$ wk) in test set</td>
+<td style="text-align: center;">8 / 30</td>
+<td style="text-align: center;">4 / 30</td>
+</tr>
+</tbody>
+</table>
+<p>The most striking change is the near-tripling of lead-time-adjusted Disruption recall (33.9% → 76.6%). With longer average disruptions, fewer episodes are absorbed by the MN's inventory buffer before the signal propagates to the DR; the Viterbi path therefore spends proportionally more time correctly in the Disruption state rather than being "swallowed" at the episode edges.</p>
+<p><strong>The physical detection lag is unchanged.</strong> Disruption detection lag remains at 10.2 weeks (mean), and recovery detection lag at 4.0 weeks, in both regimes. This was predicted: as discussed in Section 7.1, the lag is dictated by the physical pipeline (≈4 weeks propagation) plus the time needed for sustained abnormal emissions to overcome the strong Steady prior — neither of which is a function of $p$. That the lag did not move under a doubled disruption duration is itself a corroboration of the physical-vs-statistical decomposition argument.</p>
+<p><strong>Figures for the $p = 0.04$ regime</strong> — regenerated via the same <code>visualize.py</code> pipeline and archived under <code>hmm_project/p04/results/</code> — are shown below.</p>
+<p><img alt="Trained Matrices ($p = 0.04$)" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p04/results/trained_matrices.png" /><br />
+<em>Figure 10: Trained HMM parameters under $p = 0.04$. Left: Transition matrix $A$ with the Disruption self-loop now at 0.961 ($\approx 1 - 0.04$), cleanly recovering the new Geometric parameter. Right: Emission matrix $B$ — sharper state–observation separation than the baseline (Disruption → obs=3 at 0.674 vs. 0.445; Recovery → obs=5 at 0.726 vs. 0.514), as longer episodes spend more periods in the fully-propagated DR-visible regime.</em></p>
+<p><img alt="Hero Figure ($p = 0.04$)" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p04/results/hero_figure.png" /><br />
+<em>Figure 11: HMM disruption detection on a single $p = 0.04$ test run. Compared to Figure 4, the disruption window is markedly longer (tracks with expected duration $1/p = 25$ weeks), and the Forward filter holds $P(\text{Disruption}) \approx 1$ for a correspondingly longer stretch once the signal propagates.</em></p>
+<p><img alt="Confusion Matrix ($p = 0.04$)" src="file:///C:/Users/aidan/Desktop/supply_chain_sim-main_or/hmm_project/p04/results/confusion_matrix.png" /><br />
+<em>Figure 12: Viterbi classification confusion matrix under $p = 0.04$. The diagonal is substantially stronger than Figure 6 — Disruption recall rises from 23.5% (baseline) to 63.5% even before lead-time adjustment, and to 76.6% after.</em></p>
+<p><strong>Takeaway.</strong> The Geometric encoding is not fragile to the choice of $p$. The supervised-MLE training pipeline recovers the true Geometric rate across at least two distinct parameterizations, and detection quality scales predictably with disruption duration while the physical lag stays invariant.</p>
 <hr />
 <h2>8. Conclusion</h2>
 <p>We have demonstrated that a Hidden Markov Model can provide a downstream Distributor with probabilistic situational awareness of an upstream Manufacturer's hidden operational state. Using a validated pharmaceutical supply chain simulator, we:</p>
@@ -537,7 +648,7 @@ $$P(S\_{t+1} \mid S\_t, S\_{t-1}, \ldots, S\_1) = P(S\_{t+1} \mid S\_t)$$</p>
 <h2>References</h2>
 <ol>
 <li>Mohaddesi, O., Griffin, J., Ergun, O., Kaeli, D., Marsella, S., &amp; Harteveld, C. (2022). To Trust or to Stockpile: Modeling Human-Simulation Interaction in Supply Chain Shortages. <em>CHI '22: Proceedings of the CHI Conference on Human Factors in Computing Systems</em>.</li>
-<li>Raziei, Z. (2024). <em>Pharmaceutical Supply Chain Simulation</em> [Doctoral dissertation].</li>
+<li>Raziei, Z. (2024). <em>Artificial Intelligence Solutions for Decision Making with Applications in Inventory Control and Predictive Analytics</em> [Doctoral dissertation, Northeastern University]. Department of Mechanical and Industrial Engineering, Boston, MA.</li>
 <li>Rabiner, L. R. (1989). A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition. <em>Proceedings of the IEEE</em>, 77(2), 257-286.</li>
 </ol>
 </body>
